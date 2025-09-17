@@ -175,10 +175,17 @@ const ColorPalette = () => {
 
   const palette = generatePalette();
 
-  const generateCSS = () => {
-    return palette.map(({ shade, color }) => 
-      `  --color-${colorName}-${shade}: ${color};`
-    ).join('\n');
+  const generateJSON = () => {
+    const paletteObject = {
+      name: colorName,
+      colors: {}
+    };
+    
+    palette.forEach(({ shade, color }) => {
+      paletteObject.colors[shade] = color;
+    });
+    
+    return JSON.stringify(paletteObject, null, 2);
   };
 
   const copyToClipboard = (text) => {
@@ -379,28 +386,28 @@ const ColorPalette = () => {
             <Text type="secondary">Tailwind CSS Version: 4</Text>
             
             <div style={{ marginTop: 16 }}>
-              <Text strong>Output color mode:</Text>
+              <Text strong>Export Format:</Text>
               <Space style={{ marginLeft: 8 }}>
-                <Button size="small" type="primary">hex</Button>
-                <Button size="small" disabled>oklch</Button>
-                <Button size="small" disabled>p3-4</Button>
-                <Button size="small" disabled>hsl</Button>
+                <Button size="small" type="primary">JSON</Button>
+                <Button size="small" disabled>CSS</Button>
+                <Button size="small" disabled>SCSS</Button>
+                <Button size="small" disabled>Tailwind</Button>
               </Space>
             </div>
 
             <div style={{ marginTop: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text strong>CSS Variables</Text>
+                <Text strong>JSON Output</Text>
                 <Button 
                   size="small" 
                   icon={<CopyOutlined />}
-                  onClick={() => copyToClipboard(generateCSS())}
+                  onClick={() => copyToClipboard(generateJSON())}
                 >
                   Copy
                 </Button>
               </div>
               <TextArea
-                value={generateCSS()}
+                value={generateJSON()}
                 rows={12}
                 style={{ fontFamily: 'monospace', fontSize: '12px' }}
                 readOnly
@@ -408,7 +415,7 @@ const ColorPalette = () => {
             </div>
 
             <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-              Paste this into your CSS file or Tailwind config
+              Use this JSON object in your application or design system
             </Text>
           </Col>
         </Row>
