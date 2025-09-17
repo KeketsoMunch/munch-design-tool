@@ -9,7 +9,7 @@ const ColorPalette = () => {
   const [colorName, setColorName] = useState('navy');
   const [baseColor, setBaseColor] = useState('#1E4BCD');
   const [minRange, setMinRange] = useState(50);
-  const [maxRange, setMaxRange] = useState(950);
+  const [maxRange, setMaxRange] = useState(2100);
   const [customRanges, setCustomRanges] = useState('');
   const [useCustomRanges, setUseCustomRanges] = useState(false);
   const [hue, setHue] = useState(0);
@@ -91,7 +91,17 @@ const ColorPalette = () => {
     } else {
       // Generate automatic ranges
       shades = [];
-      const step = Math.max(1, Math.floor((maxRange - minRange) / 10));
+      const totalRange = maxRange - minRange;
+      let step;
+      
+      // Dynamic step calculation based on range size
+      if (totalRange <= 900) {
+        step = Math.max(50, Math.floor(totalRange / 10));
+      } else if (totalRange <= 1500) {
+        step = Math.max(100, Math.floor(totalRange / 12));
+      } else {
+        step = Math.max(150, Math.floor(totalRange / 15));
+      }
       
       for (let i = minRange; i <= maxRange; i += step) {
         shades.push(i);
@@ -102,9 +112,10 @@ const ColorPalette = () => {
         shades.push(maxRange);
       }
       
-      // Limit to reasonable number of shades (max 15)
-      if (shades.length > 15) {
-        const newStep = Math.floor((maxRange - minRange) / 14);
+      // Limit to reasonable number of shades (max 20 for larger ranges)
+      const maxShades = totalRange > 1500 ? 20 : 15;
+      if (shades.length > maxShades) {
+        const newStep = Math.floor(totalRange / (maxShades - 1));
         shades = [];
         for (let i = minRange; i <= maxRange; i += newStep) {
           shades.push(i);
@@ -122,18 +133,28 @@ const ColorPalette = () => {
     // Get base HSL from hex
     const [baseH, baseS, baseL] = hexToHsl(baseColor);
     
+    // Calculate the middle point for lightness distribution
+    const minShade = Math.min(...shades);
+    const maxShade = Math.max(...shades);
+    const middleShade = (minShade + maxShade) / 2;
+    
     return shades.map(shade => {
       // Calculate lightness based on shade (inverted scale)
-      const normalizedShade = (shade - Math.min(...shades)) / (Math.max(...shades) - Math.min(...shades));
+      const normalizedShade = (shade - minShade) / (maxShade - minShade);
       let lightness;
       
-      if (normalizedShade <= 0.5) {
-        // Lighter shades: map to lightnessMax down to middle
-        const ratio = (0.5 - normalizedShade) / 0.5;
-        lightness = baseL + (lightnessMax - baseL) * ratio;
+      // Find where the base color should sit in the range
+      const basePosition = shade <= middleShade ? 
+        (shade - minShade) / (middleShade - minShade) * 0.5 :
+        0.5 + (shade - middleShade) / (maxShade - middleShade) * 0.5;
+      
+      if (basePosition <= 0.5) {
+        // Lighter shades: interpolate from lightnessMax to baseL
+        const ratio = basePosition / 0.5;
+        lightness = lightnessMax - (lightnessMax - baseL) * ratio;
       } else {
-        // Darker shades: map from middle down to lightnessMin
-        const ratio = (normalizedShade - 0.5) / 0.5;
+        // Darker shades: interpolate from baseL to lightnessMin
+        const ratio = (basePosition - 0.5) / 0.5;
         lightness = baseL - (baseL - lightnessMin) * ratio;
       }
 
@@ -174,7 +195,7 @@ const ColorPalette = () => {
     setLightnessMax(95);
     setLightnessMin(5);
     setMinRange(50);
-    setMaxRange(950);
+    setMaxRange(2100);
     setCustomRanges('');
     setUseCustomRanges(false);
   };
@@ -270,7 +291,7 @@ const ColorPalette = () => {
                     <Input
                       type="number"
                       value={maxRange}
-                      onChange={(e) => setMaxRange(Math.min(2100, Math.max(minRange + 1, parseInt(e.target.value) || 950)))}
+                      onChange={(e) => setMaxRange(Math.min(2100, Math.max(minRange + 1, parseInt(e.target.value) || 2100)))}
                       min={minRange + 1}
                       max={2100}
                       style={{ marginTop: 4 }}
@@ -433,6 +454,32 @@ const ColorPalette = () => {
           
           </div>
             <Slider range step={50}  defaultValue={[minRange,maxRange]}  />
+            <Slider 
+              range 
+              step={50}  
+              min={0}
+              max={2100}
+              value={[minRange, maxRange]}
+              onChange={([min, max]) => {
+                setMinRange(min);
+                setMaxRange(max);
+              }}
+              tooltip={{
+                formatter: (value) => `${value}`
+              }}
+              style={{ marginTop: 8 }}
+            />
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              fontSize: '12px',
+              color: '#666',
+              marginTop: 4
+            }}>
+              <span>0</span>
+              <span>Current: {minRange} - {maxRange}</span>
+              <span>2100</span>
+            </div>
         </div>
 
         {/* Lightness Distribution */}
