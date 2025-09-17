@@ -91,17 +91,7 @@ const ColorPalette = () => {
     } else {
       // Generate automatic ranges
       shades = [];
-      const totalRange = maxRange - minRange;
-      let step;
-      
-      // Dynamic step calculation based on range size
-      if (totalRange <= 900) {
-        step = Math.max(50, Math.floor(totalRange / 10));
-      } else if (totalRange <= 1500) {
-        step = Math.max(100, Math.floor(totalRange / 12));
-      } else {
-        step = Math.max(150, Math.floor(totalRange / 15));
-      }
+      const step = 50; // Always use 50-step increments
       
       for (let i = minRange; i <= maxRange; i += step) {
         shades.push(i);
@@ -110,19 +100,6 @@ const ColorPalette = () => {
       // Ensure we always include the max range
       if (shades[shades.length - 1] !== maxRange) {
         shades.push(maxRange);
-      }
-      
-      // Limit to reasonable number of shades (max 20 for larger ranges)
-      const maxShades = totalRange > 1500 ? 20 : 15;
-      if (shades.length > maxShades) {
-        const newStep = Math.floor(totalRange / (maxShades - 1));
-        shades = [];
-        for (let i = minRange; i <= maxRange; i += newStep) {
-          shades.push(i);
-        }
-        if (shades[shades.length - 1] !== maxRange) {
-          shades.push(maxRange);
-        }
       }
     }
     
