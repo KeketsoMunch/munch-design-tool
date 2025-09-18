@@ -51,7 +51,7 @@ const Navigation = ({ currentPage, onPageChange }) => {
             fontWeight: 600
           }}
         >
-          CSS Tools
+          Munch Design Tools
         </Title>
         <Menu
           mode="horizontal"
