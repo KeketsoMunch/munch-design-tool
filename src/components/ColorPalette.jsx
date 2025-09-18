@@ -106,8 +106,10 @@ const ColorPalette = () => {
     // Always ensure 500 is included in the shades for the base color
     if (!shades.includes(500) && minRange <= 500 && maxRange >= 500) {
       shades.push(500);
-      shades.sort((a, b) => a - b);
     }
+    
+    // Remove duplicates and sort
+    shades = [...new Set(shades)].sort((a, b) => a - b);
     
     if (shades.length === 0) {
       shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
