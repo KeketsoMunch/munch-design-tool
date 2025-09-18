@@ -266,7 +266,7 @@ const ColorPalette = () => {
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <Card>
         <div style={{ marginBottom: 24 }}>
-          <Title level={3}>Palette Generator and API for Tailwind CSS</Title>
+          <Title level={3}>Palette Generator and API for Munch Software</Title>
           <Text type="secondary">
             Generate beautiful color palettes from any hex color with full control over hue, saturation, and lightness distribution.
           </Text>
