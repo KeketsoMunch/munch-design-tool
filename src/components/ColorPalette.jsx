@@ -120,11 +120,12 @@ const ColorPalette = () => {
       let lightness;
       
       if (shade === 500) {
-        // Use the exact base color lightness for 500
+        // For 500, use the exact base color - return it directly
         lightness = baseL;
       } else if (shade < 500) {
         // Tints (lighter colors): interpolate from lightnessMax to baseL
-        const ratio = (500 - shade) / (500 - Math.min(...shades.filter(s => s < 500), 0));
+        const minShadeBelow500 = Math.min(...shades.filter(s => s < 500));
+        const ratio = (500 - shade) / (500 - minShadeBelow500);
         lightness = baseL + (lightnessMax - baseL) * ratio;
       } else {
         // Shades (darker colors): interpolate from baseL to lightnessMin
@@ -133,17 +134,23 @@ const ColorPalette = () => {
         lightness = baseL - (baseL - lightnessMin) * ratio;
       }
 
-      // Apply adjustments
-      const adjustedHue = (baseH + hue + 360) % 360;
-      const adjustedSaturation = Math.max(0, Math.min(100, baseS + saturation));
-      const finalLightness = Math.max(lightnessMin, Math.min(lightnessMax, lightness));
-
-      const color = hslToHex(adjustedHue, adjustedSaturation, finalLightness);
+      let color;
+      
+      if (shade === 500) {
+        // For 500, use the exact base color without any adjustments
+        color = baseColor;
+      } else {
+        // Apply adjustments for all other shades
+        const adjustedHue = (baseH + hue + 360) % 360;
+        const adjustedSaturation = Math.max(0, Math.min(100, baseS + saturation));
+        const finalLightness = Math.max(lightnessMin, Math.min(lightnessMax, lightness));
+        color = hslToHex(adjustedHue, adjustedSaturation, finalLightness);
+      }
       
       return {
         shade,
         color,
-        lightness: finalLightness
+        lightness: shade === 500 ? baseL : Math.max(lightnessMin, Math.min(lightnessMax, lightness))
       };
     });
   };
