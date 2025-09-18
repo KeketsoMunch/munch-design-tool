@@ -103,6 +103,12 @@ const ColorPalette = () => {
       }
     }
     
+    // Always ensure 500 is included in the shades for the base color
+    if (!shades.includes(500) && minRange <= 500 && maxRange >= 500) {
+      shades.push(500);
+      shades.sort((a, b) => a - b);
+    }
+    
     if (shades.length === 0) {
       shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
     }
@@ -110,28 +116,20 @@ const ColorPalette = () => {
     // Get base HSL from hex
     const [baseH, baseS, baseL] = hexToHsl(baseColor);
     
-    // Calculate the middle point for lightness distribution
-    const minShade = Math.min(...shades);
-    const maxShade = Math.max(...shades);
-    const middleShade = (minShade + maxShade) / 2;
-    
     return shades.map(shade => {
-      // Calculate lightness based on shade (inverted scale)
-      const normalizedShade = (shade - minShade) / (maxShade - minShade);
       let lightness;
       
-      // Find where the base color should sit in the range
-      const basePosition = shade <= middleShade ? 
-        (shade - minShade) / (middleShade - minShade) * 0.5 :
-        0.5 + (shade - middleShade) / (maxShade - middleShade) * 0.5;
-      
-      if (basePosition <= 0.5) {
-        // Lighter shades: interpolate from lightnessMax to baseL
-        const ratio = basePosition / 0.5;
-        lightness = lightnessMax - (lightnessMax - baseL) * ratio;
+      if (shade === 500) {
+        // Use the exact base color lightness for 500
+        lightness = baseL;
+      } else if (shade < 500) {
+        // Tints (lighter colors): interpolate from lightnessMax to baseL
+        const ratio = (500 - shade) / (500 - Math.min(...shades.filter(s => s < 500), 0));
+        lightness = baseL + (lightnessMax - baseL) * ratio;
       } else {
-        // Darker shades: interpolate from baseL to lightnessMin
-        const ratio = (basePosition - 0.5) / 0.5;
+        // Shades (darker colors): interpolate from baseL to lightnessMin
+        const maxShadeAbove500 = Math.max(...shades.filter(s => s > 500));
+        const ratio = (shade - 500) / (maxShadeAbove500 - 500);
         lightness = baseL - (baseL - lightnessMin) * ratio;
       }
 
