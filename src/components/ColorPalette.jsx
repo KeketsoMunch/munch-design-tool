@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Slider, Row, Col, Typography, Button, Space, Switch, message } from 'antd';
-import { CopyOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Card, Input, Slider, Row, Col, Typography, Button, Space, Switch, message, Upload } from 'antd';
+import { CopyOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -152,10 +152,24 @@ const ColorPalette = () => {
 
   const palette = generatePalette();
 
-  const generateJSON = () => {
+  const generateJSON = (includeConfig = true) => {
     const paletteObject = {
       name: colorName,
-      colors: {}
+      colors: {},
+      ...(includeConfig && {
+        config: {
+          baseColor,
+          minRange,
+          maxRange,
+          customRanges,
+          useCustomRanges,
+          hue,
+          saturation,
+          lightnessMax,
+          lightnessMin,
+          isPerceived
+        }
+      })
     };
     
     palette.forEach(({ shade, color }) => {
@@ -165,6 +179,55 @@ const ColorPalette = () => {
     return JSON.stringify(paletteObject, null, 2);
   };
 
+  const loadConfiguration = (jsonString) => {
+    try {
+      const data = JSON.parse(jsonString);
+      
+      if (data.config) {
+        const config = data.config;
+        setColorName(data.name || colorName);
+        setBaseColor(config.baseColor || baseColor);
+        setMinRange(config.minRange || minRange);
+        setMaxRange(config.maxRange || maxRange);
+        setCustomRanges(config.customRanges || '');
+        setUseCustomRanges(config.useCustomRanges || false);
+        setHue(config.hue || 0);
+        setSaturation(config.saturation || 0);
+        setLightnessMax(config.lightnessMax || 95);
+        setLightnessMin(config.lightnessMin || 5);
+        setIsPerceived(config.isPerceived !== undefined ? config.isPerceived : true);
+        
+        message.success('Configuration loaded successfully!');
+      } else {
+        message.warning('No configuration found in JSON. Only loading name and colors.');
+        if (data.name) setColorName(data.name);
+      }
+    } catch (error) {
+      message.error('Invalid JSON format');
+    }
+  };
+
+  const handleFileUpload = (file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      loadConfiguration(e.target.result);
+    };
+    reader.readAsText(file);
+    return false; // Prevent default upload behavior
+  };
+
+  const downloadConfig = () => {
+    const jsonData = generateJSON(true);
+    const blob = new Blob([jsonData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${colorName}-palette-config.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
       message.success('Copied to clipboard!');
@@ -373,41 +436,87 @@ const ColorPalette = () => {
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text strong>JSON Output</Text>
+              <Text strong>Configuration:</Text>
+              <Space style={{ marginLeft: 8 }}>
                 <Button 
                   size="small" 
-                  icon={<CopyOutlined />}
-                  onClick={() => copyToClipboard(generateJSON())}
+                  icon={<DownloadOutlined />}
+                  onClick={downloadConfig}
                 >
-                  Copy
+                  Save Config
                 </Button>
+                <Upload
+                  accept=".json"
+                  beforeUpload={handleFileUpload}
+                  showUploadList={false}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    Load Config
+                  </Button>
+                </Upload>
+              </Space>
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text strong>JSON Output</Text>
+                <Space>
+                  <Button 
+                    size="small" 
+                    icon={<CopyOutlined />}
+                    onClick={() => copyToClipboard(generateJSON(false))}
+                  >
+                    Copy Colors
+                  </Button>
+                  <Button 
+                    size="small" 
+                    icon={<CopyOutlined />}
+                    onClick={() => copyToClipboard(generateJSON(true))}
+                    type="primary"
+                  >
+                    Copy with Config
+                  </Button>
+                </Space>
               </div>
               <TextArea
-                value={generateJSON()}
+                value={generateJSON(true)}
                 rows={12}
                 style={{ fontFamily: 'monospace', fontSize: '12px' }}
                 readOnly
               />
             </div>
 
-            <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
-              Use this JSON object in your application or design system
-            </Text>
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary" style={{ display: 'block' }}>
+                JSON includes both colors and configuration for easy sharing and reloading
+              </Text>
+              <Text type="secondary" style={{ display: 'block', fontSize: '11px' }}>
+                Use "Copy Colors" for colors only, or "Copy with Config" to include all settings
+              </Text>
+            </div>
           </Col>
         </Row>
 
         {/* Color Palette Display */}
         <div style={{ marginTop: 32 }}>
           <Title level={4}>Color Palette Preview</Title>
-          <div style={{ display: 'flex', gap: 2, marginTop: 16, borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ 
+            display: 'flex', 
+            gap: 2, 
+            marginTop: 16, 
+            borderRadius: 8, 
+            overflow: 'hidden',
+            overflowX: 'auto',
+            minHeight: 100,
+            padding: '0 2px'
+          }}>
             {palette.map(({ shade, color }) => (
               <div
                 key={shade}
                 style={{
                   backgroundColor: color,
                   height: 100,
-                  flex: 1,
+                  minWidth: palette.length > 15 ? 60 : 'auto',
+                  flex: palette.length <= 15 ? 1 : 'none',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -418,7 +527,8 @@ const ColorPalette = () => {
                   fontWeight: 500,
                   cursor: 'pointer',
                   transition: 'transform 0.2s ease',
-                  position: 'relative'
+                  position: 'relative',
+                  whiteSpace: 'nowrap'
                 }}
                 onClick={() => copyToClipboard(color)}
                 onMouseEnter={(e) => {
@@ -435,9 +545,8 @@ const ColorPalette = () => {
                 <span style={{ fontSize: '10px', opacity: 0.8 }}>{color}</span>
               </div>
             ))}
-          
           </div>
-            <Slider range step={50}  defaultValue={[minRange,maxRange]}  />
+          
             <Slider 
               range 
               step={50}  
