@@ -63,9 +63,86 @@ const DesignTokens = () => {
 
   const resolveTokenValue = (value) => {
     if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
-      return mockColors[value] || '#cccccc';
+      // First try to resolve from mock colors
+      if (mockColors[value]) {
+        return mockColors[value];
+      }
+      
+      // If not found in mock colors, try to resolve from the loaded tokens
+      if (tokens) {
+        const resolvedValue = resolveTokenReference(value, tokens);
+        if (resolvedValue && resolvedValue !== value) {
+          return resolveTokenValue(resolvedValue); // Recursively resolve if it's another reference
+        }
+      }
+      
+      // Fallback color
+      return '#cccccc';
     }
     return value;
+  };
+
+  const resolveTokenReference = (reference, tokenData) => {
+    // Remove the curly braces and parse the reference
+    const cleanRef = reference.slice(1, -1);
+    
+    // Handle different reference formats
+    if (cleanRef.startsWith('SYS.')) {
+      // Handle SYS references like {SYS.Colours.Light.Solid.Base}
+      const path = cleanRef.replace('SYS.', '').split('.');
+      return getTokenByPath(tokenData, ['System S/Light', 'SYS', ...path]);
+    } else if (cleanRef.startsWith('Semantics.')) {
+      // Handle Semantics references - these might need to be mapped to actual tokens
+      // For now, return a reasonable fallback
+      return null;
+    } else if (cleanRef.startsWith('(MUNCH).')) {
+      // Handle MUNCH references like {(MUNCH).Grey.100}
+      // These are base color references that we'll need to map
+      return getMunchColor(cleanRef);
+    }
+    
+    return null;
+  };
+
+  const getTokenByPath = (data, pathArray) => {
+    let current = data;
+    for (const segment of pathArray) {
+      if (current && current[segment]) {
+        current = current[segment];
+      } else {
+        return null;
+      }
+    }
+    return current && current.$value ? current.$value : null;
+  };
+
+  const getMunchColor = (reference) => {
+    // Map MUNCH color references to actual hex values
+    const munchColorMap = {
+      '(MUNCH).Grey.100': '#f5f5f5',
+      '(MUNCH).Grey.200': '#e8e8e8',
+      '(MUNCH).Grey.300': '#d9d9d9',
+      '(MUNCH).Grey.400': '#bfbfbf',
+      '(MUNCH).Grey.500*': '#8c8c8c',
+      '(MUNCH).Grey.600': '#595959',
+      '(MUNCH).Grey.700': '#434343',
+      '(MUNCH).Grey.800': '#262626',
+      '(MUNCH).Grey.900': '#1f1f1f',
+      '(MUNCH).Grey.1300': '#141414',
+      '(MUNCH).Grey.2100': '#000000',
+      '(MUNCH).Grey.2200': '#000000',
+      '(MUNCH).Base.200': '#e6f4ff',
+      '(MUNCH).Base.300': '#bae0ff',
+      '(MUNCH).Base.400': '#91caff',
+      '(MUNCH).Base.500*': '#69b1ff',
+      '(MUNCH).Base.600': '#4096ff',
+      '(MUNCH).Base.800': '#1677ff',
+      '(MUNCH).Base.900': '#0958d9',
+      '(MUNCH).Base.2100': '#002766',
+      '(MUNCH).Overlay.70%': 'rgba(0, 0, 0, 0.7)'
+    };
+    
+    return munchColorMap[reference] || null;
   };
 
   const handleFileUpload = (file) => {
