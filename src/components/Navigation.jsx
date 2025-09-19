@@ -25,11 +25,6 @@ const Navigation = ({ currentPage, onPageChange }) => {
       label: 'Color Palette',
     },
     {
-      key: 'api',
-      icon: <ApiOutlined />,
-      label: 'API Tools',
-    },
-    {
       key: 'tokens',
       icon: <EyeOutlined />,
       label: 'Design Tokens',
