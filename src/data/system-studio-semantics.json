@@ -1,0 +1,840 @@
+{
+    "System S/Light": {
+        "SYS": {
+            "Bg": {
+                "Light": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Light.Solid.Base}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Light.Solid.Focus}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Light.Solid.Hover}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Light.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Light.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Light.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Primary": {
+                    "$value": "{(MUNCH).Grey.100}",
+                    "$type": "color"
+                },
+                "Tertiary": {
+                    "$value": "{(MUNCH).Grey.300}",
+                    "$type": "color"
+                },
+                "Neutral": {
+                    "$value": "{(MUNCH).Grey.300}",
+                    "$type": "color"
+                },
+                "Control Primary": {
+                    "Soft": {
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    },
+                    "Solid": {
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Primary.Solid.Focus}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Primary.Solid.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Primary.Solid.Hover}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Gray": {
+                    "$value": "{(MUNCH).Grey.600}",
+                    "$type": "color"
+                },
+                "Disabled": {
+                    "$value": "{(MUNCH).Grey.400}",
+                    "$type": "color"
+                },
+                "Secondary": {
+                    "$value": "{(MUNCH).Grey.200}",
+                    "$type": "color"
+                },
+                "Skeleton": {
+                    "$value": "{(MUNCH).Grey.300}",
+                    "$type": "color"
+                },
+                "Overlay": {
+                    "$value": "{(MUNCH).Overlay.70%}",
+                    "$type": "color"
+                },
+                "Quaternary": {
+                    "$value": "{(MUNCH).Grey.400}",
+                    "$type": "color"
+                },
+                "Quinary": {
+                    "$value": "{(MUNCH).Base.500*}",
+                    "$type": "color"
+                },
+                "Control Secondary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Secondary.Solid.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Secondary.Solid.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Secondary.Solid.Focus}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Tertiary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Tertiary.Solid.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Tertiary.Solid.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Tertiary.Solid.Focus}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Placeholder": {
+                    "$value": "{(MUNCH).Grey.300}",
+                    "$type": "color",
+                    "$description": "Used on Apps Empty component"
+                },
+                "Dark": {
+                    "$value": "{(MUNCH).Base.800}",
+                    "$type": "color"
+                }
+            },
+            "Border": {
+                "Light": {
+                    "$value": "{(MUNCH).Grey.100}",
+                    "$type": "color",
+                    "Solid": {
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Neutral": {
+                    "Soft": {
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Focus}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Base}",
+                            "$type": "color"
+                        }
+                    },
+                    "Solid": {
+                        "Base": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Base}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Focus}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Hover}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Primary": {
+                    "Soft": {
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.300}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        }
+                    },
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.400}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.500*}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.400}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Disabled": {
+                    "$value": "{(MUNCH).Grey.200}",
+                    "$type": "color"
+                },
+                "Secondary": {
+                    "$value": "{(MUNCH).Grey.700}",
+                    "$type": "color"
+                },
+                "Primary": {
+                    "$value": "{(MUNCH).Grey.500*}",
+                    "$type": "color"
+                },
+                "Dark": {
+                    "$value": "{(MUNCH).Grey.900}",
+                    "$type": "color"
+                },
+                "Tertiary": {
+                    "$value": "{(MUNCH).Grey.900}",
+                    "$type": "color"
+                },
+                "Control Secondary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.400}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Tertiary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.400}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.500*}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.400}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        }
+                    }
+                }
+            },
+            "Fg": {
+                "Neutral": {
+                    "Solid": {
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Focus}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Hover}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Base}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Focus}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Hover}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Primary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.800}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.800}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.900}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Dark.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{Semantics.Colours.Dark.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Dark.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Tertiary": {
+                    "$value": "{(MUNCH).Base.300}",
+                    "$type": "color"
+                },
+                "Secondary": {
+                    "$value": "{(MUNCH).Base.500*}",
+                    "$type": "color"
+                },
+                "Light": {
+                    "Soft": {
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Light.Soft.Focus}",
+                            "$type": "color"
+                        },
+                        "Base": {
+                            "$value": "{Semantics.Colours.Light.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Light.Soft.Hover}",
+                            "$type": "color"
+                        }
+                    },
+                    "Solid": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Light.Solid.Base}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Light.Solid.Focus}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Light.Solid.Hover}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Primary": {
+                    "$value": "{(MUNCH).Base.2100}",
+                    "$type": "color"
+                },
+                "Placeholder": {
+                    "$value": "{(MUNCH).Grey.1300}",
+                    "$type": "color"
+                },
+                "On": {
+                    "Control Primary": {
+                        "Solid": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.500*}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.600}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.500*}",
+                                "$type": "color"
+                            }
+                        },
+                        "Soft": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.800}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            }
+                        }
+                    },
+                    "Neutral": {
+                        "Solid": {
+                            "Base": {
+                                "$value": "{(MUNCH).Grey.2200}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.500*}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.2100}",
+                                "$type": "color"
+                            }
+                        },
+                        "Soft": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.800}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            }
+                        }
+                    },
+                    "Light": {
+                        "Solid": {
+                            "Base": {
+                                "$value": "{(MUNCH).Grey.2100}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Grey.2200}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Grey.2100}",
+                                "$type": "color"
+                            }
+                        },
+                        "Soft": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.800}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            }
+                        }
+                    },
+                    "Skeleton": {
+                        "$value": "{(MUNCH).Grey.500*}",
+                        "$type": "color"
+                    },
+                    "Overlay": {
+                        "$value": "{(MUNCH).Grey.100}",
+                        "$type": "color",
+                        "$description": "Added for the modifier amount text color"
+                    },
+                    "Control Secondary": {
+                        "Solid": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.400}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.500*}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.400}",
+                                "$type": "color"
+                            }
+                        },
+                        "Soft": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.800}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            }
+                        }
+                    },
+                    "Control Tertiary": {
+                        "Solid": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.300}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.400}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.300}",
+                                "$type": "color"
+                            }
+                        },
+                        "Soft": {
+                            "Base": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            },
+                            "Hover": {
+                                "$value": "{(MUNCH).Base.800}",
+                                "$type": "color"
+                            },
+                            "Focus": {
+                                "$value": "{(MUNCH).Base.900}",
+                                "$type": "color"
+                            }
+                        }
+                    },
+                    "Tertiary": {
+                        "$value": "{(MUNCH).Grey.100}",
+                        "$type": "color",
+                        "$description": "Added for the modifier amount text color"
+                    },
+                    "Primary": {
+                        "$value": "{(MUNCH).Grey.100}",
+                        "$type": "color",
+                        "$description": "Added for the modifier amount text color"
+                    },
+                    "Secondary": {
+                        "$value": "{(MUNCH).Grey.100}",
+                        "$type": "color",
+                        "$description": "Added for the modifier amount text color"
+                    },
+                    "Dark": {
+                        "$value": "{(MUNCH).Grey.100}",
+                        "$type": "color",
+                        "$description": "Added for the modifier amount text color"
+                    }
+                },
+                "Control Secondary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.500*}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.600}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.500*}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Tertiary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.400}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.500*}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.400}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{SYS.Colours.Control Primary.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Disabled": {
+                    "$value": "{(MUNCH).Grey.900}",
+                    "$type": "color"
+                },
+                "Dark": {
+                    "$value": "{(MUNCH).Base.300}",
+                    "$type": "color",
+                    "$description": "Go Theme light text"
+                }
+            },
+            "Colours": {
+                "Control Primary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.400}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Neutral": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.600}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Neutral.Solid.Focus}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Neutral.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Light": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.100}",
+                            "$type": "color",
+                            "$description": "Used on the status component which is used in the KDS tickets"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.100}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{Semantics.Colours.Light.Soft.Base}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{Semantics.Colours.Light.Soft.Hover}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{Semantics.Colours.Light.Soft.Focus}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Secondary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.200}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.200}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        }
+                    }
+                },
+                "Control Tertiary": {
+                    "Solid": {
+                        "Base": {
+                            "$value": "{(MUNCH).Grey.100}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Grey.200}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Grey.100}",
+                            "$type": "color"
+                        }
+                    },
+                    "Soft": {
+                        "Base": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        },
+                        "Hover": {
+                            "$value": "{(MUNCH).Base.300}",
+                            "$type": "color"
+                        },
+                        "Focus": {
+                            "$value": "{(MUNCH).Base.200}",
+                            "$type": "color"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
