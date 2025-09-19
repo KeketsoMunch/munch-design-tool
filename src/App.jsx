@@ -4,6 +4,7 @@ import { Layout } from 'antd';
 import RadiusVisualizer from './components/RadiusVisualizer';
 import ColorPalette from './components/ColorPalette';
 import ApiTools from './components/ApiTools';
+import DesignTokens from './components/DesignTokens';
 import Navigation from './components/Navigation';
 
 const { Content } = Layout;
@@ -23,6 +24,8 @@ function App() {
         return <ColorPalette />;
       case 'api':
         return <ApiTools />;
+      case 'tokens':
+        return <DesignTokens />;
       default:
         return (
           <div style={{ padding: '24px', display: 'flex', justifyContent: 'center' }}>

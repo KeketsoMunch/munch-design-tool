@@ -4,6 +4,7 @@ import {
   RadiusSettingOutlined, 
   BgColorsOutlined, 
   ApiOutlined,
+  EyeOutlined,
   GithubOutlined,
   StarOutlined
 } from '@ant-design/icons';
@@ -27,6 +28,11 @@ const Navigation = ({ currentPage, onPageChange }) => {
       key: 'api',
       icon: <ApiOutlined />,
       label: 'API Tools',
+    },
+    {
+      key: 'tokens',
+      icon: <EyeOutlined />,
+      label: 'Design Tokens',
     },
   ];
 
