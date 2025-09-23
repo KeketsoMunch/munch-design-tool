@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card, Typography, Upload, Button, Space, Divider, Row, Col, message, Alert } from 'antd';
 import { UploadOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
+import flatTokens from '../data/system-studio-semantics-flat.json';
 
 const { Title, Text } = Typography;
 const { Dragger } = Upload;
@@ -9,77 +10,25 @@ const DesignTokens = () => {
   const [tokens, setTokens] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Mock color values for demonstration (since tokens reference other tokens)
-  const mockColors = {
-    '{(MUNCH).Grey.100}': '#f5f5f5',
-    '{(MUNCH).Grey.200}': '#e8e8e8',
-    '{(MUNCH).Grey.300}': '#d9d9d9',
-    '{(MUNCH).Grey.400}': '#bfbfbf',
-    '{(MUNCH).Grey.500*}': '#8c8c8c',
-    '{(MUNCH).Grey.600}': '#595959',
-    '{(MUNCH).Grey.700}': '#434343',
-    '{(MUNCH).Grey.800}': '#262626',
-    '{(MUNCH).Grey.900}': '#1f1f1f',
-    '{(MUNCH).Grey.1300}': '#141414',
-    '{(MUNCH).Grey.2100}': '#000000',
-    '{(MUNCH).Grey.2200}': '#000000',
-    '{(MUNCH).Base.200}': '#e6f4ff',
-    '{(MUNCH).Base.300}': '#bae0ff',
-    '{(MUNCH).Base.400}': '#91caff',
-    '{(MUNCH).Base.500*}': '#69b1ff',
-    '{(MUNCH).Base.600}': '#4096ff',
-    '{(MUNCH).Base.800}': '#1677ff',
-    '{(MUNCH).Base.900}': '#0958d9',
-    '{(MUNCH).Base.2100}': '#002766',
-    '{(MUNCH).Overlay.70%}': 'rgba(0, 0, 0, 0.7)',
-    '{SYS.Colours.Light.Solid.Base}': '#ffffff',
-    '{SYS.Colours.Light.Solid.Focus}': '#f0f0f0',
-    '{SYS.Colours.Light.Solid.Hover}': '#fafafa',
-    '{SYS.Colours.Control Primary.Soft.Base}': '#e6f4ff',
-    '{SYS.Colours.Control Primary.Soft.Hover}': '#bae0ff',
-    '{SYS.Colours.Control Primary.Soft.Focus}': '#e6f4ff',
-    '{SYS.Colours.Control Primary.Solid.Base}': '#d9d9d9',
-    '{SYS.Colours.Control Primary.Solid.Hover}': '#bfbfbf',
-    '{SYS.Colours.Control Primary.Solid.Focus}': '#d9d9d9',
-    '{SYS.Colours.Control Secondary.Solid.Base}': '#e8e8e8',
-    '{SYS.Colours.Control Secondary.Solid.Hover}': '#d9d9d9',
-    '{SYS.Colours.Control Secondary.Solid.Focus}': '#e8e8e8',
-    '{SYS.Colours.Control Tertiary.Solid.Base}': '#f5f5f5',
-    '{SYS.Colours.Control Tertiary.Solid.Hover}': '#e8e8e8',
-    '{SYS.Colours.Control Tertiary.Solid.Focus}': '#f5f5f5',
-    '{Semantics.Colours.Neutral.Solid.Base}': '#595959',
-    '{Semantics.Colours.Neutral.Solid.Hover}': '#434343',
-    '{Semantics.Colours.Neutral.Solid.Focus}': '#595959',
-    '{Semantics.Colours.Neutral.Soft.Base}': '#f0f0f0',
-    '{Semantics.Colours.Neutral.Soft.Hover}': '#e8e8e8',
-    '{Semantics.Colours.Neutral.Soft.Focus}': '#f0f0f0',
-    '{Semantics.Colours.Light.Soft.Base}': '#fafafa',
-    '{Semantics.Colours.Light.Soft.Hover}': '#f5f5f5',
-    '{Semantics.Colours.Light.Soft.Focus}': '#fafafa',
-    '{Semantics.Colours.Dark.Soft.Base}': '#262626',
-    '{Semantics.Colours.Dark.Soft.Hover}': '#1f1f1f',
-    '{Semantics.Colours.Dark.Soft.Focus}': '#262626'
+  // Load default tokens from flat JSON
+  const loadDefaultTokens = () => {
+    setTokens(flatTokens);
+    message.success('Default design tokens loaded!');
   };
 
   const resolveTokenValue = (value) => {
-    if (typeof value === 'string' && value.startsWith('{') && value.endsWith('}')) {
-      // First try to resolve from mock colors
-      if (mockColors[value]) {
-        return mockColors[value];
-      }
-      
-      // If not found in mock colors, try to resolve from the loaded tokens
-      if (tokens) {
-        const resolvedValue = resolveTokenReference(value, tokens);
-        if (resolvedValue && resolvedValue !== value) {
-          return resolveTokenValue(resolvedValue); // Recursively resolve if it's another reference
-        }
-      }
-      
-      // Fallback color
-      return '#cccccc';
+    // For flat tokens, the value should already be a color
+    if (typeof value === 'string' && value.startsWith('#')) {
+      return value;
     }
-    return value;
+    
+    // If it's a CSS variable reference, try to resolve it
+    if (typeof value === 'string' && value.startsWith('--')) {
+      return flatTokens[value] || '#cccccc';
+    }
+    
+    // Fallback
+    return value || '#cccccc';
   };
 
   const resolveTokenReference = (reference, tokenData) => {
@@ -163,16 +112,40 @@ const DesignTokens = () => {
     return false; // Prevent default upload behavior
   };
 
-  const loadDefaultTokens = () => {
-    // Load the existing tokens from the data file
-    import('../data/system-studio-semantics.json')
-      .then(data => {
-        setTokens(data.default || data);
-        message.success('Default design tokens loaded!');
-      })
-      .catch(() => {
-        message.error('Failed to load default tokens');
-      });
+  // Convert flat tokens to grouped structure for display
+  const convertFlatTokensToGrouped = (flatTokens) => {
+    const grouped = {
+      bg: {},
+      fg: {},
+      border: {}
+    };
+    
+    Object.entries(flatTokens).forEach(([key, value]) => {
+      if (key.startsWith('--system-bg-')) {
+        const path = key.replace('--system-bg-', '').split('-');
+        setNestedValue(grouped.bg, path, { $value: value, $type: 'color' });
+      } else if (key.startsWith('--system-fg-')) {
+        const path = key.replace('--system-fg-', '').split('-');
+        setNestedValue(grouped.fg, path, { $value: value, $type: 'color' });
+      } else if (key.startsWith('--system-border-')) {
+        const path = key.replace('--system-border-', '').split('-');
+        setNestedValue(grouped.border, path, { $value: value, $type: 'color' });
+      }
+    });
+    
+    return grouped;
+  };
+  
+  const setNestedValue = (obj, path, value) => {
+    let current = obj;
+    for (let i = 0; i < path.length - 1; i++) {
+      const key = path[i];
+      if (!current[key]) {
+        current[key] = {};
+      }
+      current = current[key];
+    }
+    current[path[path.length - 1]] = value;
   };
 
   const renderTokenCard = (tokenPath, tokenData, bgToken, fgToken, borderToken) => {
@@ -266,153 +239,91 @@ const DesignTokens = () => {
     return current && current.$value ? current : null;
   };
 
-  const renderSystemTokens = () => {
-    if (!tokens || !tokens['System S/Light'] || !tokens['System S/Light'].SYS) {
+  const renderFlatTokens = () => {
+    if (!tokens) {
       return null;
     }
 
-    const sys = tokens['System S/Light'].SYS;
-    const bgTokens = sys.Bg;
-    const fgTokens = sys.Fg;
-    const borderTokens = sys.Border;
+    // Check if tokens is flat structure or nested
+    const isFlat = Object.keys(tokens).some(key => key.startsWith('--system-'));
+    
+    if (isFlat) {
+      return renderFlatTokensStructure(tokens);
+    } else {
+      // Handle nested structure (original format)
+      return renderNestedTokensStructure(tokens);
+    }
+  };
+  
+  const renderFlatTokensStructure = (flatTokens) => {
+    const grouped = convertFlatTokensToGrouped(flatTokens);
 
     return (
       <div>
-        <Title level={3}>System Design Tokens Visualization</Title>
+        <Title level={3}>Design Tokens Visualization</Title>
         <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-          Each card shows a token applied as background color with corresponding foreground and border colors.
-          The hierarchy and relationships between tokens are preserved.
+          Each card shows a token applied with its corresponding color value from the flat token structure.
         </Text>
 
-        {/* Background Tokens */}
-        <div style={{ marginBottom: 32 }}>
-          <Title level={4}>Background Tokens</Title>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {renderTokenGroup('Background', bgTokens, bgTokens, fgTokens, borderTokens)}
-          </div>
-        </div>
-
-        {/* Foreground Tokens */}
-        <div style={{ marginBottom: 32 }}>
-          <Title level={4}>Foreground Tokens</Title>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {renderTokenGroup('Foreground', fgTokens, bgTokens, fgTokens, borderTokens)}
-          </div>
-        </div>
-
-        {/* Border Tokens */}
-        <div style={{ marginBottom: 32 }}>
-          <Title level={4}>Border Tokens</Title>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {renderTokenGroup('Border', borderTokens, bgTokens, fgTokens, borderTokens)}
-          </div>
-        </div>
-
-        {/* Control Combinations */}
-        <div style={{ marginBottom: 32 }}>
-          <Title level={4}>Control Token Combinations</Title>
-          <Row gutter={[16, 16]}>
-            {/* Control Primary */}
-            <Col span={8}>
-              <Title level={5}>Control Primary</Title>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {bgTokens['Control Primary'] && Object.keys(bgTokens['Control Primary']).map(variant => 
-                  Object.keys(bgTokens['Control Primary'][variant]).map(state => {
-                    const bgToken = bgTokens['Control Primary'][variant][state];
-                    const fgToken = fgTokens['On'] && fgTokens['On']['Control Primary'] && 
-                                   fgTokens['On']['Control Primary'][variant] && 
-                                   fgTokens['On']['Control Primary'][variant][state];
-                    const borderToken = borderTokens['Control Primary'] && 
-                                       borderTokens['Control Primary'][variant] && 
-                                       borderTokens['Control Primary'][variant][state];
-                    
-                    return renderTokenCard(
-                      `Control Primary/${variant}/${state}`,
-                      bgToken,
-                      bgToken,
-                      fgToken,
-                      borderToken
-                    );
-                  })
-                )}
-              </div>
-            </Col>
-
-            {/* Control Secondary */}
-            <Col span={8}>
-              <Title level={5}>Control Secondary</Title>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {bgTokens['Control Secondary'] && Object.keys(bgTokens['Control Secondary']).map(variant => 
-                  Object.keys(bgTokens['Control Secondary'][variant]).map(state => {
-                    const bgToken = bgTokens['Control Secondary'][variant][state];
-                    const fgToken = fgTokens['On'] && fgTokens['On']['Control Secondary'] && 
-                                   fgTokens['On']['Control Secondary'][variant] && 
-                                   fgTokens['On']['Control Secondary'][variant][state];
-                    const borderToken = borderTokens['Control Secondary'] && 
-                                       borderTokens['Control Secondary'][variant] && 
-                                       borderTokens['Control Secondary'][variant][state];
-                    
-                    return renderTokenCard(
-                      `Control Secondary/${variant}/${state}`,
-                      bgToken,
-                      bgToken,
-                      fgToken,
-                      borderToken
-                    );
-                  })
-                )}
-              </div>
-            </Col>
-
-            {/* Control Tertiary */}
-            <Col span={8}>
-              <Title level={5}>Control Tertiary</Title>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {bgTokens['Control Tertiary'] && Object.keys(bgTokens['Control Tertiary']).map(variant => 
-                  Object.keys(bgTokens['Control Tertiary'][variant]).map(state => {
-                    const bgToken = bgTokens['Control Tertiary'][variant][state];
-                    const fgToken = fgTokens['On'] && fgTokens['On']['Control Tertiary'] && 
-                                   fgTokens['On']['Control Tertiary'][variant] && 
-                                   fgTokens['On']['Control Tertiary'][variant][state];
-                    const borderToken = borderTokens['Control Tertiary'] && 
-                                       borderTokens['Control Tertiary'][variant] && 
-                                       borderTokens['Control Tertiary'][variant][state];
-                    
-                    return renderTokenCard(
-                      `Control Tertiary/${variant}/${state}`,
-                      bgToken,
-                      bgToken,
-                      fgToken,
-                      borderToken
-                    );
-                  })
-                )}
-              </div>
-            </Col>
-          </Row>
-        </div>
-
-        {/* Simple Tokens */}
-        <div style={{ marginBottom: 32 }}>
-          <Title level={4}>Simple Token Pairs</Title>
-          <Row gutter={[16, 16]}>
-            {['Primary', 'Secondary', 'Tertiary', 'Neutral', 'Gray', 'Disabled', 'Skeleton', 'Placeholder', 'Dark'].map(tokenName => {
-              const bgToken = bgTokens[tokenName];
-              const fgToken = fgTokens[tokenName] || fgTokens['On'] && fgTokens['On'][tokenName];
-              const borderToken = borderTokens[tokenName];
-              
-              if (!bgToken) return null;
-              
-              return (
-                <Col span={6} key={tokenName}>
-                  {renderTokenCard(tokenName, bgToken, bgToken, fgToken, borderToken)}
-                </Col>
-              );
-            })}
-          </Row>
+        {renderTokenSection('Background Tokens', grouped.bg, 'bg')}
+        {renderTokenSection('Foreground Tokens', grouped.fg, 'fg')}
+        {renderTokenSection('Border Tokens', grouped.border, 'border')}
+      </div>
+    );
+  };
+  
+  const renderTokenSection = (title, tokens, type) => {
+    return (
+      <div style={{ marginBottom: 32 }}>
+        <Title level={4}>{title}</Title>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {renderTokenCards(tokens, type, '')}
         </div>
       </div>
     );
+  };
+  
+  const renderTokenCards = (obj, type, path) => {
+    const cards = [];
+    
+    Object.entries(obj).forEach(([key, value]) => {
+      const currentPath = path ? `${path}/${key}` : key;
+      
+      if (value && value.$value) {
+        // This is a token with a value
+        const bgColor = type === 'bg' ? value.$value : '#ffffff';
+        const fgColor = type === 'fg' ? value.$value : '#000000';
+        const borderColor = type === 'border' ? value.$value : '#d9d9d9';
+        
+        cards.push(
+          <Card
+            key={currentPath}
+            size="small"
+            style={{
+              backgroundColor: bgColor,
+              color: fgColor,
+              border: `1px solid ${borderColor}`,
+              minHeight: 80,
+              margin: '4px',
+              minWidth: 150
+            }}
+            bodyStyle={{ padding: '12px' }}
+          >
+            <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
+              {currentPath}
+            </div>
+            <div style={{ fontSize: '10px', opacity: 0.8 }}>
+              {value.$value}
+            </div>
+          </Card>
+        );
+      } else if (typeof value === 'object') {
+        // Recurse into nested objects
+        cards.push(...renderTokenCards(value, type, currentPath));
+      }
+    });
+    
+    return cards;
   };
 
   return (
@@ -494,7 +405,7 @@ const DesignTokens = () => {
 
             <Divider />
 
-            {renderSystemTokens()}
+            {renderFlatTokens()}
           </div>
         )}
       </Card>

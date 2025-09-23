@@ -5,6 +5,7 @@ import {
   BgColorsOutlined, 
   ApiOutlined,
   EyeOutlined,
+  AppstoreOutlined,
   GithubOutlined,
   StarOutlined
 } from '@ant-design/icons';
@@ -28,6 +29,11 @@ const Navigation = ({ currentPage, onPageChange }) => {
       key: 'tokens',
       icon: <EyeOutlined />,
       label: 'Design Tokens',
+    },
+    {
+      key: 'components',
+      icon: <AppstoreOutlined />,
+      label: 'Components',
     },
   ];
 
