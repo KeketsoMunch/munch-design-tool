@@ -7,91 +7,13 @@ const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
 const DesignTokens = () => {
-  const [tokens, setTokens] = useState(null);
+  const [tokens, setTokens] = useState(flatTokens);
   const [loading, setLoading] = useState(false);
 
   // Load default tokens from flat JSON
   const loadDefaultTokens = () => {
     setTokens(flatTokens);
     message.success('Default design tokens loaded!');
-  };
-
-  const resolveTokenValue = (value) => {
-    // For flat tokens, the value should already be a color
-    if (typeof value === 'string' && value.startsWith('#')) {
-      return value;
-    }
-    
-    // If it's a CSS variable reference, try to resolve it
-    if (typeof value === 'string' && value.startsWith('--')) {
-      return flatTokens[value] || '#cccccc';
-    }
-    
-    // Fallback
-    return value || '#cccccc';
-  };
-
-  const resolveTokenReference = (reference, tokenData) => {
-    // Remove the curly braces and parse the reference
-    const cleanRef = reference.slice(1, -1);
-    
-    // Handle different reference formats
-    if (cleanRef.startsWith('SYS.')) {
-      // Handle SYS references like {SYS.Colours.Light.Solid.Base}
-      const path = cleanRef.replace('SYS.', '').split('.');
-      return getTokenByPath(tokenData, ['System S/Light', 'SYS', ...path]);
-    } else if (cleanRef.startsWith('Semantics.')) {
-      // Handle Semantics references - these might need to be mapped to actual tokens
-      // For now, return a reasonable fallback
-      return null;
-    } else if (cleanRef.startsWith('(MUNCH).')) {
-      // Handle MUNCH references like {(MUNCH).Grey.100}
-      // These are base color references that we'll need to map
-      return getMunchColor(cleanRef);
-    }
-    
-    return null;
-  };
-
-  const getTokenByPath = (data, pathArray) => {
-    let current = data;
-    for (const segment of pathArray) {
-      if (current && current[segment]) {
-        current = current[segment];
-      } else {
-        return null;
-      }
-    }
-    return current && current.$value ? current.$value : null;
-  };
-
-  const getMunchColor = (reference) => {
-    // Map MUNCH color references to actual hex values
-    const munchColorMap = {
-      '(MUNCH).Grey.100': '#f5f5f5',
-      '(MUNCH).Grey.200': '#e8e8e8',
-      '(MUNCH).Grey.300': '#d9d9d9',
-      '(MUNCH).Grey.400': '#bfbfbf',
-      '(MUNCH).Grey.500*': '#8c8c8c',
-      '(MUNCH).Grey.600': '#595959',
-      '(MUNCH).Grey.700': '#434343',
-      '(MUNCH).Grey.800': '#262626',
-      '(MUNCH).Grey.900': '#1f1f1f',
-      '(MUNCH).Grey.1300': '#141414',
-      '(MUNCH).Grey.2100': '#000000',
-      '(MUNCH).Grey.2200': '#000000',
-      '(MUNCH).Base.200': '#e6f4ff',
-      '(MUNCH).Base.300': '#bae0ff',
-      '(MUNCH).Base.400': '#91caff',
-      '(MUNCH).Base.500*': '#69b1ff',
-      '(MUNCH).Base.600': '#4096ff',
-      '(MUNCH).Base.800': '#1677ff',
-      '(MUNCH).Base.900': '#0958d9',
-      '(MUNCH).Base.2100': '#002766',
-      '(MUNCH).Overlay.70%': 'rgba(0, 0, 0, 0.7)'
-    };
-    
-    return munchColorMap[reference] || null;
   };
 
   const handleFileUpload = (file) => {
@@ -112,30 +34,34 @@ const DesignTokens = () => {
     return false; // Prevent default upload behavior
   };
 
-  // Convert flat tokens to grouped structure for display
-  const convertFlatTokensToGrouped = (flatTokens) => {
-    const grouped = {
+  // Parse token structure from flat tokens
+  const parseTokenStructure = (flatTokens) => {
+    const structure = {
       bg: {},
       fg: {},
-      border: {}
+      border: {},
+      colours: {}
     };
-    
-    Object.entries(flatTokens).forEach(([key, value]) => {
+
+    Object.keys(flatTokens).forEach(key => {
       if (key.startsWith('--system-bg-')) {
         const path = key.replace('--system-bg-', '').split('-');
-        setNestedValue(grouped.bg, path, { $value: value, $type: 'color' });
+        setNestedValue(structure.bg, path, { key, value: flatTokens[key] });
       } else if (key.startsWith('--system-fg-')) {
         const path = key.replace('--system-fg-', '').split('-');
-        setNestedValue(grouped.fg, path, { $value: value, $type: 'color' });
+        setNestedValue(structure.fg, path, { key, value: flatTokens[key] });
       } else if (key.startsWith('--system-border-')) {
         const path = key.replace('--system-border-', '').split('-');
-        setNestedValue(grouped.border, path, { $value: value, $type: 'color' });
+        setNestedValue(structure.border, path, { key, value: flatTokens[key] });
+      } else if (key.startsWith('--system-colours-')) {
+        const path = key.replace('--system-colours-', '').split('-');
+        setNestedValue(structure.colours, path, { key, value: flatTokens[key] });
       }
     });
-    
-    return grouped;
+
+    return structure;
   };
-  
+
   const setNestedValue = (obj, path, value) => {
     let current = obj;
     for (let i = 0; i < path.length - 1; i++) {
@@ -148,183 +74,218 @@ const DesignTokens = () => {
     current[path[path.length - 1]] = value;
   };
 
-  const renderTokenCard = (tokenPath, tokenData, bgToken, fgToken, borderToken) => {
-    const bgColor = resolveTokenValue(bgToken?.$value);
-    const fgColor = resolveTokenValue(fgToken?.$value);
-    const borderColor = resolveTokenValue(borderToken?.$value);
+  // Find corresponding tokens for a given background token
+  const findCorrespondingTokens = (bgPath, structure) => {
+    // For "on" tokens, we need to find the specific "on" variant
+    const onPath = ['on', ...bgPath];
+    const fgOnToken = getTokenByPath(structure.fg, onPath);
     
+    // For regular fg tokens, use the same path as bg
+    const fgToken = getTokenByPath(structure.fg, bgPath);
+    
+    // For border tokens, use the same path as bg
+    const borderToken = getTokenByPath(structure.border, bgPath);
+
+    return {
+      fg: fgOnToken || fgToken,
+      border: borderToken
+    };
+  };
+
+  const getTokenByPath = (obj, path) => {
+    let current = obj;
+    for (const segment of path) {
+      if (current && current[segment]) {
+        current = current[segment];
+      } else {
+        return null;
+      }
+    }
+    return current && current.key ? current : null;
+  };
+
+  // Create token cards with proper relationships
+  const createTokenCard = (bgToken, bgPath, correspondingTokens, pathString) => {
+    const bgColor = bgToken.value;
+    const fgColor = correspondingTokens.fg ? correspondingTokens.fg.value : '#000000';
+    const borderColor = correspondingTokens.border ? correspondingTokens.border.value : '#d9d9d9';
+
+    // Determine if we should use light or dark text based on background
+    const shouldUseLightText = isColorDark(bgColor);
+    const textColor = shouldUseLightText ? '#ffffff' : fgColor;
+
     return (
       <Card
-        key={tokenPath}
+        key={pathString}
         size="small"
         style={{
           backgroundColor: bgColor,
-          color: fgColor,
-          border: `1px solid ${borderColor || '#d9d9d9'}`,
-          minHeight: 80,
-          margin: '4px'
+          color: textColor,
+          border: `2px solid ${borderColor}`,
+          minHeight: 120,
+          margin: '8px',
+          minWidth: 200,
+          maxWidth: 250
         }}
-        bodyStyle={{ padding: '12px' }}
+        bodyStyle={{ padding: '16px' }}
       >
-        <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
-          {tokenPath}
+        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+          {pathString}
         </div>
-        <div style={{ fontSize: '10px', opacity: 0.8 }}>
-          BG: {bgColor}
+        
+        <div style={{ fontSize: '11px', opacity: 0.9, marginBottom: '4px' }}>
+          <strong>BG:</strong> {bgToken.key}
         </div>
-        <div style={{ fontSize: '10px', opacity: 0.8 }}>
-          FG: {fgColor}
+        <div style={{ fontSize: '10px', opacity: 0.8, marginBottom: '4px' }}>
+          {bgColor}
         </div>
-        {borderColor && (
-          <div style={{ fontSize: '10px', opacity: 0.8 }}>
-            Border: {borderColor}
-          </div>
+        
+        {correspondingTokens.fg && (
+          <>
+            <div style={{ fontSize: '11px', opacity: 0.9, marginBottom: '4px' }}>
+              <strong>FG:</strong> {correspondingTokens.fg.key}
+            </div>
+            <div style={{ fontSize: '10px', opacity: 0.8, marginBottom: '4px' }}>
+              {correspondingTokens.fg.value}
+            </div>
+          </>
+        )}
+        
+        {correspondingTokens.border && (
+          <>
+            <div style={{ fontSize: '11px', opacity: 0.9, marginBottom: '4px' }}>
+              <strong>Border:</strong> {correspondingTokens.border.key}
+            </div>
+            <div style={{ fontSize: '10px', opacity: 0.8 }}>
+              {correspondingTokens.border.value}
+            </div>
+          </>
         )}
       </Card>
     );
   };
 
-  const renderTokenGroup = (groupName, groupData, bgTokens, fgTokens, borderTokens) => {
+  // Helper function to determine if a color is dark
+  const isColorDark = (hexColor) => {
+    if (!hexColor || !hexColor.startsWith('#')) return false;
+    
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calculate luminance
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5;
+  };
+
+  // Render token cards recursively
+  const renderTokenCards = (obj, path = [], structure) => {
     const cards = [];
-    
-    const processTokens = (data, path = '') => {
-      Object.keys(data).forEach(key => {
-        if (key.startsWith('$')) return; // Skip metadata
-        
-        const currentPath = path ? `${path}/${key}` : key;
-        const value = data[key];
-        
-        if (value && typeof value === 'object' && value.$value) {
-          // This is a token with a value
-          const bgTokenPath = currentPath.replace(/^Fg/, 'Bg').replace(/^Border/, 'Bg');
-          const fgTokenPath = currentPath.replace(/^Bg/, 'Fg').replace(/^Border/, 'Fg');
-          const borderTokenPath = currentPath.replace(/^Bg/, 'Border').replace(/^Fg/, 'Border');
-          
-          // Handle "On" tokens specially
-          let onTokenPath = null;
-          if (currentPath.includes('Bg/')) {
-            onTokenPath = currentPath.replace('Bg/', 'Fg/On/');
-          }
-          
-          const bgToken = getNestedToken(bgTokens, bgTokenPath) || value;
-          const fgToken = getNestedToken(fgTokens, onTokenPath || fgTokenPath) || getNestedToken(fgTokens, fgTokenPath);
-          const borderToken = getNestedToken(borderTokens, borderTokenPath);
-          
-          cards.push(renderTokenCard(currentPath, value, bgToken, fgToken, borderToken));
-        } else if (value && typeof value === 'object') {
-          // Recurse into nested objects
-          processTokens(value, currentPath);
-        }
-      });
-    };
-    
-    processTokens(groupData);
-    return cards;
-  };
 
-  const getNestedToken = (obj, path) => {
-    if (!obj || !path) return null;
-    
-    const parts = path.split('/');
-    let current = obj;
-    
-    for (const part of parts) {
-      if (current && current[part]) {
-        current = current[part];
-      } else {
-        return null;
-      }
-    }
-    
-    return current && current.$value ? current : null;
-  };
-
-  const renderFlatTokens = () => {
-    if (!tokens) {
-      return null;
-    }
-
-    // Check if tokens is flat structure or nested
-    const isFlat = Object.keys(tokens).some(key => key.startsWith('--system-'));
-    
-    if (isFlat) {
-      return renderFlatTokensStructure(tokens);
-    } else {
-      // Handle nested structure (original format)
-      return renderNestedTokensStructure(tokens);
-    }
-  };
-  
-  const renderFlatTokensStructure = (flatTokens) => {
-    const grouped = convertFlatTokensToGrouped(flatTokens);
-
-    return (
-      <div>
-        <Title level={3}>Design Tokens Visualization</Title>
-        <Text type="secondary" style={{ display: 'block', marginBottom: 24 }}>
-          Each card shows a token applied with its corresponding color value from the flat token structure.
-        </Text>
-
-        {renderTokenSection('Background Tokens', grouped.bg, 'bg')}
-        {renderTokenSection('Foreground Tokens', grouped.fg, 'fg')}
-        {renderTokenSection('Border Tokens', grouped.border, 'border')}
-      </div>
-    );
-  };
-  
-  const renderTokenSection = (title, tokens, type) => {
-    return (
-      <div style={{ marginBottom: 32 }}>
-        <Title level={4}>{title}</Title>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {renderTokenCards(tokens, type, '')}
-        </div>
-      </div>
-    );
-  };
-  
-  const renderTokenCards = (obj, type, path) => {
-    const cards = [];
-    
     Object.entries(obj).forEach(([key, value]) => {
-      const currentPath = path ? `${path}/${key}` : key;
-      
-      if (value && value.$value) {
-        // This is a token with a value
-        const bgColor = type === 'bg' ? value.$value : '#ffffff';
-        const fgColor = type === 'fg' ? value.$value : '#000000';
-        const borderColor = type === 'border' ? value.$value : '#d9d9d9';
-        
-        cards.push(
-          <Card
-            key={currentPath}
-            size="small"
-            style={{
-              backgroundColor: bgColor,
-              color: fgColor,
-              border: `1px solid ${borderColor}`,
-              minHeight: 80,
-              margin: '4px',
-              minWidth: 150
-            }}
-            bodyStyle={{ padding: '12px' }}
-          >
-            <div style={{ fontSize: '12px', fontWeight: 500, marginBottom: '4px' }}>
-              {currentPath}
-            </div>
-            <div style={{ fontSize: '10px', opacity: 0.8 }}>
-              {value.$value}
-            </div>
-          </Card>
-        );
-      } else if (typeof value === 'object') {
+      const currentPath = [...path, key];
+      const pathString = currentPath.join(' / ');
+
+      if (value && value.key && value.value) {
+        // This is a token with a value - create a card
+        const correspondingTokens = findCorrespondingTokens(currentPath, structure);
+        cards.push(createTokenCard(value, currentPath, correspondingTokens, pathString));
+      } else if (typeof value === 'object' && value !== null) {
         // Recurse into nested objects
-        cards.push(...renderTokenCards(value, type, currentPath));
+        cards.push(...renderTokenCards(value, currentPath, structure));
       }
     });
-    
+
     return cards;
   };
+
+  // Render special combination cards
+  const renderSpecialCombinations = (structure) => {
+    const combinations = [];
+
+    // Primary combination
+    const bgPrimary = getTokenByPath(structure.bg, ['primary']);
+    const fgPrimary = getTokenByPath(structure.fg, ['primary']);
+    const borderPrimary = getTokenByPath(structure.border, ['primary']);
+
+    if (bgPrimary && fgPrimary) {
+      combinations.push(
+        <Card
+          key="primary-combination"
+          size="small"
+          style={{
+            backgroundColor: bgPrimary.value,
+            color: fgPrimary.value,
+            border: `2px solid ${borderPrimary ? borderPrimary.value : '#d9d9d9'}`,
+            minHeight: 120,
+            margin: '8px',
+            minWidth: 200,
+            maxWidth: 250
+          }}
+          bodyStyle={{ padding: '16px' }}
+        >
+          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+            Primary Combination
+          </div>
+          <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+            <strong>BG:</strong> {bgPrimary.key}
+          </div>
+          <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+            <strong>FG:</strong> {fgPrimary.key}
+          </div>
+          {borderPrimary && (
+            <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+              <strong>Border:</strong> {borderPrimary.key}
+            </div>
+          )}
+        </Card>
+      );
+    }
+
+    // Control Primary Solid Base combination with "on" token
+    const bgControlPrimarySolidBase = getTokenByPath(structure.bg, ['control', 'primary', 'solid', 'base']);
+    const fgOnControlPrimarySolidBase = getTokenByPath(structure.fg, ['on', 'control', 'primary', 'solid', 'base']);
+    const borderControlPrimarySolidBase = getTokenByPath(structure.border, ['control', 'primary', 'solid', 'base']);
+
+    if (bgControlPrimarySolidBase && fgOnControlPrimarySolidBase) {
+      combinations.push(
+        <Card
+          key="control-primary-solid-base-combination"
+          size="small"
+          style={{
+            backgroundColor: bgControlPrimarySolidBase.value,
+            color: fgOnControlPrimarySolidBase.value,
+            border: `2px solid ${borderControlPrimarySolidBase ? borderControlPrimarySolidBase.value : '#d9d9d9'}`,
+            minHeight: 120,
+            margin: '8px',
+            minWidth: 200,
+            maxWidth: 250
+          }}
+          bodyStyle={{ padding: '16px' }}
+        >
+          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+            Control Primary Solid Base
+          </div>
+          <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+            <strong>BG:</strong> {bgControlPrimarySolidBase.key}
+          </div>
+          <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+            <strong>FG:</strong> {fgOnControlPrimarySolidBase.key}
+          </div>
+          {borderControlPrimarySolidBase && (
+            <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+              <strong>Border:</strong> {borderControlPrimarySolidBase.key}
+            </div>
+          )}
+        </Card>
+      );
+    }
+
+    return combinations;
+  };
+
+  const structure = parseTokenStructure(tokens);
 
   return (
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -333,81 +294,158 @@ const DesignTokens = () => {
           <EyeOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 16 }} />
           <Title level={2}>Design Tokens Visualizer</Title>
           <Text type="secondary">
-            Upload your design tokens JSON file to visualize how tokens are applied to UI elements.
-            Each card demonstrates the relationship between background, foreground, and border tokens.
+            Each card demonstrates the relationship between background, foreground, and border tokens. 
+            "On" tokens are specifically designed for colored backgrounds, while regular tokens work on any surface.
           </Text>
         </div>
 
-        {!tokens && (
-          <div style={{ marginBottom: 32 }}>
-            <Row gutter={[24, 24]} align="middle">
-              <Col span={12}>
-                <Dragger
-                  accept=".json"
-                  beforeUpload={handleFileUpload}
-                  showUploadList={false}
-                  loading={loading}
-                >
-                  <p className="ant-upload-drag-icon">
-                    <UploadOutlined />
-                  </p>
-                  <p className="ant-upload-text">Click or drag JSON file to upload</p>
-                  <p className="ant-upload-hint">
-                    Upload your design tokens JSON file to visualize the token relationships
-                  </p>
-                </Dragger>
-              </Col>
-              <Col span={12} style={{ textAlign: 'center' }}>
-                <div>
-                  <Text strong>Or try with sample data:</Text>
-                  <br />
-                  <Button 
-                    type="primary" 
-                    icon={<ReloadOutlined />}
-                    onClick={loadDefaultTokens}
-                    style={{ marginTop: 16 }}
-                  >
-                    Load Default Tokens
-                  </Button>
-                </div>
-              </Col>
-            </Row>
-          </div>
-        )}
+        <div style={{ marginBottom: 24, textAlign: 'center' }}>
+          <Space>
+            <Upload
+              accept=".json"
+              beforeUpload={handleFileUpload}
+              showUploadList={false}
+            >
+              <Button icon={<UploadOutlined />}>
+                Upload Token File
+              </Button>
+            </Upload>
+            <Button 
+              type="primary" 
+              icon={<ReloadOutlined />}
+              onClick={loadDefaultTokens}
+            >
+              Load Default Tokens
+            </Button>
+          </Space>
+        </div>
 
-        {tokens && (
-          <div>
-            <div style={{ marginBottom: 24, textAlign: 'center' }}>
-              <Space>
-                <Button 
-                  icon={<UploadOutlined />}
-                  onClick={() => setTokens(null)}
-                >
-                  Upload Different File
-                </Button>
-                <Button 
-                  type="primary" 
-                  icon={<ReloadOutlined />}
-                  onClick={loadDefaultTokens}
-                >
-                  Reload Default
-                </Button>
-              </Space>
+        <Alert
+          message="Token Relationship Guide"
+          description={
+            <div>
+              <p><strong>Background Tokens:</strong> Control the card background color</p>
+              <p><strong>Foreground Tokens:</strong> Control the text color - "on" variants are for colored backgrounds</p>
+              <p><strong>Border Tokens:</strong> Control the card border color</p>
+              <p><strong>Token Names:</strong> Show the exact CSS variable name and resolved hex value</p>
             </div>
+          }
+          type="info"
+          showIcon
+          style={{ marginBottom: 24 }}
+        />
 
-            <Alert
-              message="Token Visualization Active"
-              description="Each card shows a token applied as styling. Background tokens control the card background, foreground tokens control text color, and border tokens control the border color. The 'On' tokens are used for text that appears on colored backgrounds."
-              type="info"
-              showIcon
-              style={{ marginBottom: 24 }}
-            />
+        <Divider />
 
-            <Divider />
-
-            {renderFlatTokens()}
+        {/* Special Token Combinations */}
+        <div style={{ marginBottom: 32 }}>
+          <Title level={3}>Special Token Combinations</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            These cards demonstrate specific token relationships like primary combinations and "on" token usage.
+          </Text>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {renderSpecialCombinations(structure)}
           </div>
-        )}
+        </div>
+
+        <Divider />
+
+        {/* Background Tokens */}
+        <div style={{ marginBottom: 32 }}>
+          <Title level={3}>Background Tokens</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Each card uses a background token with its corresponding foreground and border tokens applied.
+          </Text>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {renderTokenCards(structure.bg, [], structure)}
+          </div>
+        </div>
+
+        <Divider />
+
+        {/* Foreground Only Tokens */}
+        <div style={{ marginBottom: 32 }}>
+          <Title level={3}>Foreground Tokens</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Foreground tokens that don't have corresponding background tokens, shown on neutral backgrounds.
+          </Text>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {Object.entries(structure.fg).map(([key, value]) => {
+              if (value && value.key && value.value && !getTokenByPath(structure.bg, [key])) {
+                return (
+                  <Card
+                    key={`fg-only-${key}`}
+                    size="small"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      color: value.value,
+                      border: '2px solid #d9d9d9',
+                      minHeight: 120,
+                      margin: '8px',
+                      minWidth: 200,
+                      maxWidth: 250
+                    }}
+                    bodyStyle={{ padding: '16px' }}
+                  >
+                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+                      {key}
+                    </div>
+                    <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+                      <strong>FG:</strong> {value.key}
+                    </div>
+                    <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                      {value.value}
+                    </div>
+                  </Card>
+                );
+              }
+              return null;
+            }).filter(Boolean)}
+          </div>
+        </div>
+
+        <Divider />
+
+        {/* Border Only Tokens */}
+        <div style={{ marginBottom: 32 }}>
+          <Title level={3}>Border Tokens</Title>
+          <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+            Border tokens that don't have corresponding background tokens, shown with neutral styling.
+          </Text>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {Object.entries(structure.border).map(([key, value]) => {
+              if (value && value.key && value.value && !getTokenByPath(structure.bg, [key])) {
+                return (
+                  <Card
+                    key={`border-only-${key}`}
+                    size="small"
+                    style={{
+                      backgroundColor: '#ffffff',
+                      color: '#000000',
+                      border: `2px solid ${value.value}`,
+                      minHeight: 120,
+                      margin: '8px',
+                      minWidth: 200,
+                      maxWidth: 250
+                    }}
+                    bodyStyle={{ padding: '16px' }}
+                  >
+                    <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+                      {key}
+                    </div>
+                    <div style={{ fontSize: '11px', marginBottom: '4px' }}>
+                      <strong>Border:</strong> {value.key}
+                    </div>
+                    <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                      {value.value}
+                    </div>
+                  </Card>
+                );
+              }
+              return null;
+            }).filter(Boolean)}
+          </div>
+        </div>
       </Card>
     </div>
   );
