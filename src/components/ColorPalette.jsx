@@ -203,25 +203,26 @@ const ColorPalette = () => {
     const paletteObject = {
       name: colorName,
       colors: {},
+      ...(includeConfig && {
+        config: {
+          baseColor,
+          minRange,
+          maxRange,
+          customRanges,
+          useCustomRanges,
+          hue,
+          saturation,
+          lightnessMax,
+          lightnessMin,
+          isPerceived
+        }
+      }),
+      ...(includeConfig && {
+        graphPoints,
+        curveIntensity,
+        connectionStrength
+      })
     };
-    
-    if (includeConfig) {
-      paletteObject.config = {
-        baseColor,
-        minRange,
-        maxRange,
-        customRanges,
-        useCustomRanges,
-        hue,
-        saturation,
-        lightnessMax,
-        lightnessMin,
-        isPerceived
-      };
-      paletteObject.graphPoints = graphPoints;
-      paletteObject.curveIntensity = curveIntensity;
-      paletteObject.connectionStrength = connectionStrength;
-    }
     
     palette.forEach(({ shade, color }) => {
       paletteObject.colors[shade] = color;
@@ -309,14 +310,14 @@ const ColorPalette = () => {
         setLightnessMin(config.lightnessMin || 5);
         setIsPerceived(config.isPerceived !== undefined ? config.isPerceived : true);
         
-        if (config.graphPoints) {
-          setGraphPoints(config.graphPoints);
+        if (data.graphPoints) {
+          setGraphPoints(data.graphPoints);
         }
-        if (config.curveIntensity !== undefined) {
-          setCurveIntensity(config.curveIntensity);
+        if (data.curveIntensity !== undefined) {
+          setCurveIntensity(data.curveIntensity);
         }
-        if (config.connectionStrength !== undefined) {
-          setConnectionStrength(config.connectionStrength);
+        if (data.connectionStrength !== undefined) {
+          setConnectionStrength(data.connectionStrength);
         }
         
         message.success('Configuration loaded successfully!');
@@ -350,6 +351,7 @@ const ColorPalette = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+  
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
       message.success('Copied to clipboard!');
@@ -926,6 +928,7 @@ const ColorPalette = () => {
             ))}
           </div>
           
+          <div style={{ marginTop: 16 }}>
             <Slider 
               range 
               step={50}  
@@ -952,6 +955,7 @@ const ColorPalette = () => {
               <span>Current: {minRange} - {maxRange}</span>
               <span>2100</span>
             </div>
+          </div>
         </div>
 
         {/* Lightness Distribution */}
