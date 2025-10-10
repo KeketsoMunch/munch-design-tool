@@ -26,9 +26,9 @@ const Navigation = ({ currentPage, onPageChange }) => {
       label: 'Color Palette',
     },
     {
-      key: 'tokens',
+      key: 'apca',
       icon: <EyeOutlined />,
-      label: 'Design Tokens',
+      label: 'APCA Contrast',
     },
     {
       key: 'components',

@@ -4,7 +4,7 @@ import { Layout } from 'antd';
 import RadiusVisualizer from './components/RadiusVisualizer';
 import ColorPalette from './components/ColorPalette';
 import ApiTools from './components/ApiTools';
-import DesignTokens from './components/DesignTokens';
+import APCAContrast from './components/APCAContrast';
 import Components from './components/Components';
 import Navigation from './components/Navigation';
 
@@ -25,8 +25,8 @@ function App() {
         return <ColorPalette />;
       case 'api':
         return <ApiTools />;
-      case 'tokens':
-        return <DesignTokens />;
+      case 'apca':
+        return <APCAContrast />;
       case 'components':
         return <Components />;
       default:
