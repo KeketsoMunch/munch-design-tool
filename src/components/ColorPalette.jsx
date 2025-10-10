@@ -203,26 +203,25 @@ const ColorPalette = () => {
     const paletteObject = {
       name: colorName,
       colors: {},
-      ...(includeConfig && {
-        config: {
-          baseColor,
-          minRange,
-          maxRange,
-          customRanges,
-          useCustomRanges,
-          hue,
-          saturation,
-          lightnessMax,
-          lightnessMin,
-          isPerceived
-        }),
-        ...(includeConfig && {
-          graphPoints,
-          curveIntensity,
-          connectionStrength
-        }
-      })
     };
+    
+    if (includeConfig) {
+      paletteObject.config = {
+        baseColor,
+        minRange,
+        maxRange,
+        customRanges,
+        useCustomRanges,
+        hue,
+        saturation,
+        lightnessMax,
+        lightnessMin,
+        isPerceived
+      };
+      paletteObject.graphPoints = graphPoints;
+      paletteObject.curveIntensity = curveIntensity;
+      paletteObject.connectionStrength = connectionStrength;
+    }
     
     palette.forEach(({ shade, color }) => {
       paletteObject.colors[shade] = color;
