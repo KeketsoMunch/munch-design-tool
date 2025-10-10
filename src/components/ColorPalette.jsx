@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Input, Slider, Row, Col, Typography, Button, Space, Switch, message, Upload } from 'antd';
-import { CopyOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Card, Input, Slider, Row, Col, Typography, Button, Space, Switch, message, Upload, Divider } from 'antd';
+import { CopyOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -17,6 +17,14 @@ const ColorPalette = () => {
   const [lightnessMax, setLightnessMax] = useState(95);
   const [lightnessMin, setLightnessMin] = useState(5);
   const [isPerceived, setIsPerceived] = useState(true);
+  const [graphPoints, setGraphPoints] = useState([
+    { shade: 50, lightness: 95 },
+    { shade: 500, lightness: 50 },
+    { shade: 950, lightness: 5 }
+  ]);
+  const [curveIntensity, setCurveIntensity] = useState(0);
+  const [connectionStrength, setConnectionStrength] = useState(50);
+  const [showGraph, setShowGraph] = useState(true);
 
   // Convert hex to HSL
   const hexToHsl = (hex) => {
@@ -77,6 +85,52 @@ const ColorPalette = () => {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   };
 
+  // Generate lightness curve based on graph points
+  const generateLightnessCurve = (shade) => {
+    // Sort points by shade
+    const sortedPoints = [...graphPoints].sort((a, b) => a.shade - b.shade);
+    
+    // Find the two points to interpolate between
+    let leftPoint = sortedPoints[0];
+    let rightPoint = sortedPoints[sortedPoints.length - 1];
+    
+    for (let i = 0; i < sortedPoints.length - 1; i++) {
+      if (shade >= sortedPoints[i].shade && shade <= sortedPoints[i + 1].shade) {
+        leftPoint = sortedPoints[i];
+        rightPoint = sortedPoints[i + 1];
+        break;
+      }
+    }
+    
+    // If shade is outside the range, use the nearest point
+    if (shade < sortedPoints[0].shade) {
+      return sortedPoints[0].lightness;
+    }
+    if (shade > sortedPoints[sortedPoints.length - 1].shade) {
+      return sortedPoints[sortedPoints.length - 1].lightness;
+    }
+    
+    // Linear interpolation with curve adjustment
+    const t = (shade - leftPoint.shade) / (rightPoint.shade - leftPoint.shade);
+    
+    // Apply curve intensity (0 = linear, positive = ease-in-out curve)
+    let adjustedT = t;
+    if (curveIntensity !== 0) {
+      const intensity = curveIntensity / 100;
+      if (intensity > 0) {
+        // Ease-in-out curve
+        adjustedT = t < 0.5 
+          ? 2 * Math.pow(t, 1 + intensity) 
+          : 1 - 2 * Math.pow(1 - t, 1 + intensity);
+      } else {
+        // Inverse curve (more linear in middle)
+        adjustedT = 0.5 + Math.sin((t - 0.5) * Math.PI) * (0.5 + Math.abs(intensity));
+      }
+    }
+    
+    return leftPoint.lightness + (rightPoint.lightness - leftPoint.lightness) * adjustedT;
+  };
+
   // Generate color palette based on settings
   const generatePalette = () => {
     let shades;
@@ -119,22 +173,8 @@ const ColorPalette = () => {
     const [baseH, baseS, baseL] = hexToHsl(baseColor);
     
     return shades.map(shade => {
-      let lightness;
-      
-      if (shade === 500) {
-        // For 500, use the exact base color - return it directly
-        lightness = baseL;
-      } else if (shade < 500) {
-        // Tints (lighter colors): interpolate from lightnessMax to baseL
-        const minShadeBelow500 = Math.min(...shades.filter(s => s < 500));
-        const ratio = (500 - shade) / (500 - minShadeBelow500);
-        lightness = baseL + (lightnessMax - baseL) * ratio;
-      } else {
-        // Shades (darker colors): interpolate from baseL to lightnessMin
-        const maxShadeAbove500 = Math.max(...shades.filter(s => s > 500));
-        const ratio = (shade - 500) / (maxShadeAbove500 - 500);
-        lightness = baseL - (baseL - lightnessMin) * ratio;
-      }
+      // Use graph-based lightness calculation
+      const lightness = generateLightnessCurve(shade);
 
       let color;
       
@@ -175,6 +215,11 @@ const ColorPalette = () => {
           lightnessMax,
           lightnessMin,
           isPerceived
+        }),
+        ...(includeConfig && {
+          graphPoints,
+          curveIntensity,
+          connectionStrength
         }
       })
     };
@@ -184,6 +229,67 @@ const ColorPalette = () => {
     });
     
     return JSON.stringify(paletteObject, null, 2);
+  };
+
+  // Graph interaction handlers
+  const handleGraphPointDrag = (index, newShade, newLightness) => {
+    const newPoints = [...graphPoints];
+    const oldPoint = newPoints[index];
+    
+    // Update the dragged point
+    newPoints[index] = {
+      shade: Math.max(0, Math.min(2100, newShade)),
+      lightness: Math.max(0, Math.min(100, newLightness))
+    };
+    
+    // Apply connection strength to neighboring points
+    if (connectionStrength > 0) {
+      const strengthFactor = connectionStrength / 100;
+      const shadeChange = newPoints[index].shade - oldPoint.shade;
+      const lightnessChange = newPoints[index].lightness - oldPoint.lightness;
+      
+      // Affect neighboring points
+      for (let i = 0; i < newPoints.length; i++) {
+        if (i !== index) {
+          const distance = Math.abs(newPoints[i].shade - oldPoint.shade);
+          const maxDistance = 1000; // Maximum distance for influence
+          const influence = Math.max(0, 1 - distance / maxDistance) * strengthFactor;
+          
+          if (influence > 0) {
+            newPoints[i] = {
+              shade: Math.max(0, Math.min(2100, newPoints[i].shade + shadeChange * influence * 0.3)),
+              lightness: Math.max(0, Math.min(100, newPoints[i].lightness + lightnessChange * influence * 0.5))
+            };
+          }
+        }
+      }
+    }
+    
+    setGraphPoints(newPoints);
+  };
+
+  const addGraphPoint = () => {
+    const newShade = 300 + Math.random() * 400; // Random shade between 300-700
+    const newLightness = generateLightnessCurve(newShade);
+    
+    setGraphPoints([...graphPoints, { shade: newShade, lightness: newLightness }]);
+  };
+
+  const removeGraphPoint = (index) => {
+    if (graphPoints.length > 2) { // Keep at least 2 points
+      const newPoints = graphPoints.filter((_, i) => i !== index);
+      setGraphPoints(newPoints);
+    }
+  };
+
+  const resetGraph = () => {
+    setGraphPoints([
+      { shade: 50, lightness: 95 },
+      { shade: 500, lightness: 50 },
+      { shade: 950, lightness: 5 }
+    ]);
+    setCurveIntensity(0);
+    setConnectionStrength(50);
   };
 
   const loadConfiguration = (jsonString) => {
@@ -203,6 +309,16 @@ const ColorPalette = () => {
         setLightnessMax(config.lightnessMax || 95);
         setLightnessMin(config.lightnessMin || 5);
         setIsPerceived(config.isPerceived !== undefined ? config.isPerceived : true);
+        
+        if (config.graphPoints) {
+          setGraphPoints(config.graphPoints);
+        }
+        if (config.curveIntensity !== undefined) {
+          setCurveIntensity(config.curveIntensity);
+        }
+        if (config.connectionStrength !== undefined) {
+          setConnectionStrength(config.connectionStrength);
+        }
         
         message.success('Configuration loaded successfully!');
       } else {
@@ -426,6 +542,76 @@ const ColorPalette = () => {
                 Reset
               </Button>
             </div>
+
+            <Divider />
+
+            {/* Graph Controls */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text strong>Lightness Curve Graph</Text>
+                <Switch 
+                  checked={showGraph}
+                  onChange={setShowGraph}
+                  size="small"
+                />
+              </div>
+              
+              {showGraph && (
+                <>
+                  <Row gutter={16} style={{ marginBottom: 16 }}>
+                    <Col span={12}>
+                      <Text strong>Curve Intensity</Text>
+                      <Slider
+                        value={curveIntensity}
+                        onChange={setCurveIntensity}
+                        min={-50}
+                        max={50}
+                        style={{ marginTop: 8 }}
+                        tooltip={{ formatter: (value) => `${value}%` }}
+                      />
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {curveIntensity}% ({curveIntensity === 0 ? 'Linear' : curveIntensity > 0 ? 'Curved' : 'Inverse'})
+                      </Text>
+                    </Col>
+                    <Col span={12}>
+                      <Text strong>Connection Strength</Text>
+                      <Slider
+                        value={connectionStrength}
+                        onChange={setConnectionStrength}
+                        min={0}
+                        max={100}
+                        style={{ marginTop: 8 }}
+                        tooltip={{ formatter: (value) => `${value}%` }}
+                      />
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {connectionStrength}% (Point influence)
+                      </Text>
+                    </Col>
+                  </Row>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text strong>Graph Points ({graphPoints.length})</Text>
+                    <Space>
+                      <Button 
+                        size="small" 
+                        icon={<PlusOutlined />}
+                        onClick={addGraphPoint}
+                        disabled={graphPoints.length >= 10}
+                      >
+                        Add Point
+                      </Button>
+                      <Button 
+                        size="small" 
+                        icon={<ReloadOutlined />}
+                        onClick={resetGraph}
+                      >
+                        Reset Graph
+                      </Button>
+                    </Space>
+                  </div>
+                </>
+              )}
+            </div>
           </Col>
 
           <Col span={12}>
@@ -502,6 +688,193 @@ const ColorPalette = () => {
             </div>
           </Col>
         </Row>
+
+        {/* Interactive Graph Visualizer */}
+        {showGraph && (
+          <div style={{ marginTop: 32 }}>
+            <Title level={4}>Interactive Lightness Curve</Title>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+              Drag points to adjust the lightness curve. Connected points will move together based on connection strength.
+            </Text>
+            
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: 24, 
+              borderRadius: 8,
+              marginBottom: 16
+            }}>
+              <svg 
+                width="100%" 
+                height="300" 
+                viewBox="0 0 800 300"
+                style={{ border: '1px solid #e1e1e1', borderRadius: 4, background: 'white' }}
+              >
+                {/* Grid lines */}
+                <defs>
+                  <pattern id="grid" width="40" height="30" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 30" fill="none" stroke="#f0f0f0" strokeWidth="1"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+                
+                {/* Axes */}
+                <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="2" />
+                <line x1="50" y1="250" x2="50" y2="50" stroke="#666" strokeWidth="2" />
+                
+                {/* Axis labels */}
+                <text x="400" y="280" textAnchor="middle" fontSize="12" fill="#666">Shade Value</text>
+                <text x="25" y="150" textAnchor="middle" fontSize="12" fill="#666" transform="rotate(-90 25 150)">Lightness %</text>
+                
+                {/* Scale markers */}
+                {[0, 500, 1000, 1500, 2000].map(shade => (
+                  <g key={shade}>
+                    <line 
+                      x1={50 + (shade / 2100) * 700} 
+                      y1="250" 
+                      x2={50 + (shade / 2100) * 700} 
+                      y2="255" 
+                      stroke="#666" 
+                    />
+                    <text 
+                      x={50 + (shade / 2100) * 700} 
+                      y="270" 
+                      textAnchor="middle" 
+                      fontSize="10" 
+                      fill="#666"
+                    >
+                      {shade}
+                    </text>
+                  </g>
+                ))}
+                
+                {[0, 25, 50, 75, 100].map(lightness => (
+                  <g key={lightness}>
+                    <line 
+                      x1="45" 
+                      y1={250 - (lightness / 100) * 200} 
+                      x2="50" 
+                      y2={250 - (lightness / 100) * 200} 
+                      stroke="#666" 
+                    />
+                    <text 
+                      x="40" 
+                      y={250 - (lightness / 100) * 200 + 4} 
+                      textAnchor="end" 
+                      fontSize="10" 
+                      fill="#666"
+                    >
+                      {lightness}
+                    </text>
+                  </g>
+                ))}
+                
+                {/* Curve line */}
+                <path
+                  d={(() => {
+                    const points = [];
+                    for (let shade = 0; shade <= 2100; shade += 50) {
+                      const lightness = generateLightnessCurve(shade);
+                      const x = 50 + (shade / 2100) * 700;
+                      const y = 250 - (lightness / 100) * 200;
+                      points.push(`${shade === 0 ? 'M' : 'L'} ${x} ${y}`);
+                    }
+                    return points.join(' ');
+                  })()}
+                  fill="none"
+                  stroke="#1890ff"
+                  strokeWidth="3"
+                />
+                
+                {/* Interactive points */}
+                {graphPoints.map((point, index) => {
+                  const x = 50 + (point.shade / 2100) * 700;
+                  const y = 250 - (point.lightness / 100) * 200;
+                  
+                  return (
+                    <g key={index}>
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r="8"
+                        fill="#ff4d4f"
+                        stroke="white"
+                        strokeWidth="2"
+                        style={{ cursor: 'move' }}
+                        onMouseDown={(e) => {
+                          const svg = e.currentTarget.closest('svg');
+                          const rect = svg.getBoundingClientRect();
+                          
+                          const handleMouseMove = (moveEvent) => {
+                            const newX = moveEvent.clientX - rect.left;
+                            const newY = moveEvent.clientY - rect.top;
+                            
+                            const newShade = Math.max(0, Math.min(2100, ((newX - 50) / 700) * 2100));
+                            const newLightness = Math.max(0, Math.min(100, ((250 - newY) / 200) * 100));
+                            
+                            handleGraphPointDrag(index, newShade, newLightness);
+                          };
+                          
+                          const handleMouseUp = () => {
+                            document.removeEventListener('mousemove', handleMouseMove);
+                            document.removeEventListener('mouseup', handleMouseUp);
+                          };
+                          
+                          document.addEventListener('mousemove', handleMouseMove);
+                          document.addEventListener('mouseup', handleMouseUp);
+                        }}
+                      />
+                      <text
+                        x={x}
+                        y={y - 15}
+                        textAnchor="middle"
+                        fontSize="10"
+                        fill="#333"
+                        pointerEvents="none"
+                      >
+                        {Math.round(point.shade)}, {Math.round(point.lightness)}%
+                      </text>
+                      {graphPoints.length > 2 && (
+                        <circle
+                          cx={x + 12}
+                          cy={y - 12}
+                          r="6"
+                          fill="#ff7875"
+                          stroke="white"
+                          strokeWidth="1"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => removeGraphPoint(index)}
+                        />
+                      )}
+                      {graphPoints.length > 2 && (
+                        <text
+                          x={x + 12}
+                          y={y - 8}
+                          textAnchor="middle"
+                          fontSize="8"
+                          fill="white"
+                          pointerEvents="none"
+                        >
+                          ×
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+              
+              <div style={{ marginTop: 16, fontSize: '12px', color: '#666' }}>
+                <Text strong>Instructions:</Text>
+                <ul style={{ margin: '8px 0', paddingLeft: 16 }}>
+                  <li>Drag red points to adjust the lightness curve</li>
+                  <li>Click the × on points to remove them (minimum 2 points required)</li>
+                  <li>Use "Add Point" to create new control points</li>
+                  <li>Adjust curve intensity for linear vs curved interpolation</li>
+                  <li>Connection strength controls how much points influence each other</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Color Palette Display */}
         <div style={{ marginTop: 32 }}>
