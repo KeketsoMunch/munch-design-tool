@@ -22,6 +22,7 @@ const ColorPalette = () => {
     { shade: 500, lightness: 50 },
     { shade: 950, lightness: 5 }
   ]);
+  const [selectedPreset, setSelectedPreset] = useState('custom');
   const [curveIntensity, setCurveIntensity] = useState(0);
   const [connectionStrength, setConnectionStrength] = useState(50);
   const [showGraph, setShowGraph] = useState(true);
@@ -134,7 +135,7 @@ const ColorPalette = () => {
   // Generate color palette based on settings
   const generatePalette = () => {
     let shades;
-    
+
     if (useCustomRanges && customRanges.trim()) {
       // Parse custom ranges from comma-separated string
       shades = customRanges
@@ -146,40 +147,39 @@ const ColorPalette = () => {
       // Generate automatic ranges
       shades = [];
       const step = 50; // Always use 50-step increments
-      
+
       for (let i = minRange; i <= maxRange; i += step) {
         shades.push(i);
       }
-      
+
       // Ensure we always include the max range
       if (shades[shades.length - 1] !== maxRange) {
         shades.push(maxRange);
       }
     }
-    
-    // Always ensure 500 is included in the shades for the base color
-    if (!shades.includes(500) && minRange <= 500 && maxRange >= 500) {
-      shades.push(500);
-    }
-    
+
     // Remove duplicates and sort
     shades = [...new Set(shades)].sort((a, b) => a - b);
-    
+
     if (shades.length === 0) {
       shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
     }
-    
+
     // Get base HSL from hex
     const [baseH, baseS, baseL] = hexToHsl(baseColor);
-    
+
+    // Smart base color positioning based on lightness
+    // Find the shade value that corresponds to the base color's lightness
+    const baseColorShade = Math.round((100 - baseL) * 21); // Map 0-100 lightness to 2100-0 shade
+
     return shades.map(shade => {
       // Use graph-based lightness calculation
       const lightness = generateLightnessCurve(shade);
 
       let color;
-      
-      if (shade === 500) {
-        // For 500, use the exact base color without any adjustments
+
+      // Use base color when shade matches its lightness position
+      if (Math.abs(shade - baseColorShade) < 50 && shades.includes(baseColorShade)) {
         color = baseColor;
       } else {
         // Apply adjustments for all other shades
@@ -188,11 +188,12 @@ const ColorPalette = () => {
         const finalLightness = Math.max(lightnessMin, Math.min(lightnessMax, lightness));
         color = hslToHex(adjustedHue, adjustedSaturation, finalLightness);
       }
-      
+
       return {
         shade,
         color,
-        lightness: shade === 500 ? baseL : Math.max(lightnessMin, Math.min(lightnessMax, lightness))
+        lightness: Math.max(lightnessMin, Math.min(lightnessMax, lightness)),
+        isBaseColor: Math.abs(shade - baseColorShade) < 50
       };
     });
   };
@@ -235,26 +236,26 @@ const ColorPalette = () => {
   const handleGraphPointDrag = (index, newShade, newLightness) => {
     const newPoints = [...graphPoints];
     const oldPoint = newPoints[index];
-    
+
     // Update the dragged point
     newPoints[index] = {
       shade: Math.max(0, Math.min(2100, newShade)),
       lightness: Math.max(0, Math.min(100, newLightness))
     };
-    
+
     // Apply connection strength to neighboring points
     if (connectionStrength > 0) {
       const strengthFactor = connectionStrength / 100;
       const shadeChange = newPoints[index].shade - oldPoint.shade;
       const lightnessChange = newPoints[index].lightness - oldPoint.lightness;
-      
+
       // Affect neighboring points
       for (let i = 0; i < newPoints.length; i++) {
         if (i !== index) {
           const distance = Math.abs(newPoints[i].shade - oldPoint.shade);
           const maxDistance = 1000; // Maximum distance for influence
           const influence = Math.max(0, 1 - distance / maxDistance) * strengthFactor;
-          
+
           if (influence > 0) {
             newPoints[i] = {
               shade: Math.max(0, Math.min(2100, newPoints[i].shade + shadeChange * influence * 0.3)),
@@ -264,15 +265,17 @@ const ColorPalette = () => {
         }
       }
     }
-    
+
     setGraphPoints(newPoints);
+    setSelectedPreset('custom'); // Mark as custom when manually adjusted
   };
 
   const addGraphPoint = () => {
     const newShade = 300 + Math.random() * 400; // Random shade between 300-700
     const newLightness = generateLightnessCurve(newShade);
-    
+
     setGraphPoints([...graphPoints, { shade: newShade, lightness: newLightness }]);
+    setSelectedPreset('custom');
   };
 
   const removeGraphPoint = (index) => {
@@ -282,13 +285,92 @@ const ColorPalette = () => {
     }
   };
 
+  // Preset curve configurations
+  const curvePresets = {
+    linear: {
+      name: 'Linear',
+      points: [
+        { shade: 50, lightness: 95 },
+        { shade: 950, lightness: 5 }
+      ],
+      curveIntensity: 0
+    },
+    easeIn: {
+      name: 'Ease In',
+      points: [
+        { shade: 50, lightness: 95 },
+        { shade: 300, lightness: 70 },
+        { shade: 600, lightness: 30 },
+        { shade: 950, lightness: 5 }
+      ],
+      curveIntensity: 30
+    },
+    easeOut: {
+      name: 'Ease Out',
+      points: [
+        { shade: 50, lightness: 95 },
+        { shade: 400, lightness: 65 },
+        { shade: 700, lightness: 25 },
+        { shade: 950, lightness: 5 }
+      ],
+      curveIntensity: -20
+    },
+    sCurve: {
+      name: 'S-Curve',
+      points: [
+        { shade: 50, lightness: 95 },
+        { shade: 250, lightness: 80 },
+        { shade: 500, lightness: 50 },
+        { shade: 750, lightness: 20 },
+        { shade: 950, lightness: 5 }
+      ],
+      curveIntensity: 25
+    },
+    balanced: {
+      name: 'Balanced',
+      points: [
+        { shade: 50, lightness: 95 },
+        { shade: 200, lightness: 80 },
+        { shade: 400, lightness: 60 },
+        { shade: 600, lightness: 40 },
+        { shade: 800, lightness: 20 },
+        { shade: 950, lightness: 5 }
+      ],
+      curveIntensity: 0
+    },
+    dramatic: {
+      name: 'Dramatic',
+      points: [
+        { shade: 50, lightness: 98 },
+        { shade: 400, lightness: 85 },
+        { shade: 700, lightness: 15 },
+        { shade: 950, lightness: 3 }
+      ],
+      curveIntensity: 40
+    },
+    subtle: {
+      name: 'Subtle',
+      points: [
+        { shade: 50, lightness: 90 },
+        { shade: 500, lightness: 50 },
+        { shade: 950, lightness: 15 }
+      ],
+      curveIntensity: -10
+    }
+  };
+
+  const applyPreset = (presetKey) => {
+    const preset = curvePresets[presetKey];
+    if (preset) {
+      setGraphPoints(preset.points);
+      setCurveIntensity(preset.curveIntensity);
+      setSelectedPreset(presetKey);
+      message.success(`Applied ${preset.name} preset`);
+    }
+  };
+
   const resetGraph = () => {
-    setGraphPoints([
-      { shade: 50, lightness: 95 },
-      { shade: 500, lightness: 50 },
-      { shade: 950, lightness: 5 }
-    ]);
-    setCurveIntensity(0);
+    applyPreset('balanced');
     setConnectionStrength(50);
   };
 
@@ -590,19 +672,36 @@ const ColorPalette = () => {
                     </Col>
                   </Row>
 
+                  <div style={{ marginBottom: 16 }}>
+                    <Text strong>Preset Curves</Text>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+                      {Object.entries(curvePresets).map(([key, preset]) => (
+                        <Button
+                          key={key}
+                          size="small"
+                          type={selectedPreset === key ? 'primary' : 'default'}
+                          onClick={() => applyPreset(key)}
+                          style={{ fontSize: '11px', padding: '2px 8px' }}
+                        >
+                          {preset.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <Text strong>Graph Points ({graphPoints.length})</Text>
                     <Space>
-                      <Button 
-                        size="small" 
+                      <Button
+                        size="small"
                         icon={<PlusOutlined />}
                         onClick={addGraphPoint}
                         disabled={graphPoints.length >= 10}
                       >
                         Add Point
                       </Button>
-                      <Button 
-                        size="small" 
+                      <Button
+                        size="small"
                         icon={<ReloadOutlined />}
                         onClick={resetGraph}
                       >
@@ -704,19 +803,38 @@ const ColorPalette = () => {
               borderRadius: 8,
               marginBottom: 16
             }}>
-              <svg 
-                width="100%" 
-                height="300" 
+              <svg
+                width="100%"
+                height="300"
                 viewBox="0 0 800 300"
                 style={{ border: '1px solid #e1e1e1', borderRadius: 4, background: 'white' }}
               >
-                {/* Grid lines */}
                 <defs>
-                  <pattern id="grid" width="40" height="30" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 30" fill="none" stroke="#f0f0f0" strokeWidth="1"/>
-                  </pattern>
+                  {/* Create gradient background using palette colors */}
+                  <linearGradient id="paletteGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    {palette.map((item, index) => (
+                      <stop
+                        key={index}
+                        offset={`${(index / (palette.length - 1)) * 100}%`}
+                        stopColor={item.color}
+                      />
+                    ))}
+                  </linearGradient>
+
+                  {/* Hue gradient for bottom preview */}
+                  <linearGradient id="hueGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    {palette.map((item, index) => (
+                      <stop
+                        key={index}
+                        offset={`${(item.shade / 2100) * 100}%`}
+                        stopColor={item.color}
+                      />
+                    ))}
+                  </linearGradient>
                 </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
+
+                {/* Color gradient background */}
+                <rect x="50" y="50" width="700" height="200" fill="url(#paletteGradient)" opacity="0.9" rx="4" />
                 
                 {/* Axes */}
                 <line x1="50" y1="250" x2="750" y2="250" stroke="#666" strokeWidth="2" />
@@ -769,7 +887,7 @@ const ColorPalette = () => {
                   </g>
                 ))}
                 
-                {/* Curve line */}
+                {/* Curve line - now white for visibility on colored background */}
                 <path
                   d={(() => {
                     const points = [];
@@ -782,24 +900,53 @@ const ColorPalette = () => {
                     return points.join(' ');
                   })()}
                   fill="none"
-                  stroke="#1890ff"
-                  strokeWidth="3"
+                  stroke="white"
+                  strokeWidth="4"
+                  opacity="0.8"
                 />
+
+                {/* Palette color preview dots along curve */}
+                {palette.map((item, idx) => {
+                  const x = 50 + (item.shade / 2100) * 700;
+                  const y = 250 - (item.lightness / 100) * 200;
+                  return (
+                    <circle
+                      key={`palette-${idx}`}
+                      cx={x}
+                      cy={y}
+                      r="4"
+                      fill={item.color}
+                      stroke="white"
+                      strokeWidth="2"
+                      opacity="1"
+                    />
+                  );
+                })}
                 
-                {/* Interactive points */}
+                {/* Interactive control points - larger and more visible */}
                 {graphPoints.map((point, index) => {
                   const x = 50 + (point.shade / 2100) * 700;
                   const y = 250 - (point.lightness / 100) * 200;
-                  
+
                   return (
                     <g key={index}>
+                      {/* Outer ring for better visibility */}
+                      <circle
+                        cx={x}
+                        cy={y}
+                        r="12"
+                        fill="rgba(255, 77, 79, 0.3)"
+                        stroke="white"
+                        strokeWidth="3"
+                      />
+                      {/* Inner control point */}
                       <circle
                         cx={x}
                         cy={y}
                         r="8"
                         fill="#ff4d4f"
                         stroke="white"
-                        strokeWidth="2"
+                        strokeWidth="3"
                         style={{ cursor: 'move' }}
                         onMouseDown={(e) => {
                           const svg = e.currentTarget.closest('svg');
@@ -824,53 +971,101 @@ const ColorPalette = () => {
                           document.addEventListener('mouseup', handleMouseUp);
                         }}
                       />
+                      {/* Label background for better readability */}
+                      <rect
+                        x={x - 30}
+                        y={y - 28}
+                        width="60"
+                        height="16"
+                        fill="rgba(0, 0, 0, 0.75)"
+                        rx="3"
+                        pointerEvents="none"
+                      />
                       <text
                         x={x}
-                        y={y - 15}
+                        y={y - 16}
                         textAnchor="middle"
                         fontSize="10"
-                        fill="#333"
+                        fill="white"
+                        fontWeight="600"
                         pointerEvents="none"
                       >
                         {Math.round(point.shade)}, {Math.round(point.lightness)}%
                       </text>
                       {graphPoints.length > 2 && (
-                        <circle
-                          cx={x + 12}
-                          cy={y - 12}
-                          r="6"
-                          fill="#ff7875"
-                          stroke="white"
-                          strokeWidth="1"
-                          style={{ cursor: 'pointer' }}
-                          onClick={() => removeGraphPoint(index)}
-                        />
-                      )}
-                      {graphPoints.length > 2 && (
-                        <text
-                          x={x + 12}
-                          y={y - 8}
-                          textAnchor="middle"
-                          fontSize="8"
-                          fill="white"
-                          pointerEvents="none"
-                        >
-                          ×
-                        </text>
+                        <>
+                          <circle
+                            cx={x + 16}
+                            cy={y - 16}
+                            r="8"
+                            fill="#ff4d4f"
+                            stroke="white"
+                            strokeWidth="2"
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => removeGraphPoint(index)}
+                          />
+                          <text
+                            x={x + 16}
+                            y={y - 12}
+                            textAnchor="middle"
+                            fontSize="10"
+                            fontWeight="bold"
+                            fill="white"
+                            pointerEvents="none"
+                          >
+                            ×
+                          </text>
+                        </>
                       )}
                     </g>
                   );
                 })}
               </svg>
-              
-              <div style={{ marginTop: 16, fontSize: '12px', color: '#666' }}>
+
+              {/* Horizontal palette preview bar */}
+              <div style={{ marginTop: 16 }}>
+                <div style={{
+                  height: 40,
+                  borderRadius: 8,
+                  background: 'linear-gradient(to right, ' + palette.map(item => item.color).join(', ') + ')',
+                  border: '2px solid #e1e1e1',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  {/* Show base color position if applicable */}
+                  {palette.find(item => item.isBaseColor) && (
+                    <div style={{
+                      position: 'absolute',
+                      left: `${(palette.findIndex(item => item.isBaseColor) / (palette.length - 1)) * 100}%`,
+                      transform: 'translateX(-50%)',
+                      bottom: '-24px'
+                    }}>
+                      <div style={{
+                        width: 0,
+                        height: 0,
+                        borderLeft: '6px solid transparent',
+                        borderRight: '6px solid transparent',
+                        borderBottom: '8px solid #1890ff',
+                        margin: '0 auto'
+                      }} />
+                      <Text style={{ fontSize: '10px', color: '#1890ff', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        Base
+                      </Text>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 32, fontSize: '12px', color: '#666' }}>
                 <Text strong>Instructions:</Text>
                 <ul style={{ margin: '8px 0', paddingLeft: 16 }}>
-                  <li>Drag red points to adjust the lightness curve</li>
-                  <li>Click the × on points to remove them (minimum 2 points required)</li>
-                  <li>Use "Add Point" to create new control points</li>
-                  <li>Adjust curve intensity for linear vs curved interpolation</li>
-                  <li>Connection strength controls how much points influence each other</li>
+                  <li>The colored gradient shows your actual palette colors</li>
+                  <li>White dots show where each shade falls on the curve</li>
+                  <li>Drag red control points to adjust the lightness distribution</li>
+                  <li>Click × to remove control points (minimum 2 required)</li>
+                  <li>Use preset curves for common patterns, or customize your own</li>
+                  <li>Base color automatically positions based on its lightness value</li>
                 </ul>
               </div>
             </div>
