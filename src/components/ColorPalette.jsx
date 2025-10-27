@@ -17,12 +17,7 @@ const ColorPalette = () => {
   const [lightnessMax, setLightnessMax] = useState(95);
   const [lightnessMin, setLightnessMin] = useState(5);
   const [isPerceived, setIsPerceived] = useState(true);
-  const [graphPoints, setGraphPoints] = useState([
-    { shade: 50, lightness: 95 },
-    { shade: 500, lightness: 50 },
-    { shade: 950, lightness: 5 }
-  ]);
-  const [selectedPreset, setSelectedPreset] = useState('custom');
+  const [selectedPreset, setSelectedPreset] = useState('balanced');
   const [curveIntensity, setCurveIntensity] = useState(0);
   const [connectionStrength, setConnectionStrength] = useState(50);
   const [showGraph, setShowGraph] = useState(true);
@@ -86,114 +81,93 @@ const ColorPalette = () => {
     return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
   };
 
-  // Generate lightness curve based on graph points
-  const generateLightnessCurve = (shade) => {
-    // Sort points by shade
-    const sortedPoints = [...graphPoints].sort((a, b) => a.shade - b.shade);
-    
-    // Find the two points to interpolate between
-    let leftPoint = sortedPoints[0];
-    let rightPoint = sortedPoints[sortedPoints.length - 1];
-    
+  // Catmull-Rom spline interpolation for smooth curves through all points
+  const catmullRomSpline = (points, t) => {
+    const p0 = points[0];
+    const p1 = points[1];
+    const p2 = points[2];
+    const p3 = points[3];
+
+    const t2 = t * t;
+    const t3 = t2 * t;
+
+    return {
+      x: 0.5 * ((2 * p1.x) +
+        (-p0.x + p2.x) * t +
+        (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+        (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+      y: 0.5 * ((2 * p1.y) +
+        (-p0.y + p2.y) * t +
+        (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+        (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+    };
+  };
+
+  // Generate lightness for a given shade using spline interpolation through palette points
+  const generateLightnessCurve = (shade, palettePoints) => {
+    if (!palettePoints || palettePoints.length === 0) return 50;
+
+    const sortedPoints = [...palettePoints].sort((a, b) => a.shade - b.shade);
+
+    // If shade is outside range, clamp to edges
+    if (shade <= sortedPoints[0].shade) return sortedPoints[0].lightness;
+    if (shade >= sortedPoints[sortedPoints.length - 1].shade) return sortedPoints[sortedPoints.length - 1].lightness;
+
+    // Find surrounding points for interpolation
+    let leftIdx = 0;
     for (let i = 0; i < sortedPoints.length - 1; i++) {
       if (shade >= sortedPoints[i].shade && shade <= sortedPoints[i + 1].shade) {
-        leftPoint = sortedPoints[i];
-        rightPoint = sortedPoints[i + 1];
+        leftIdx = i;
         break;
       }
     }
-    
-    // If shade is outside the range, use the nearest point
-    if (shade < sortedPoints[0].shade) {
-      return sortedPoints[0].lightness;
-    }
-    if (shade > sortedPoints[sortedPoints.length - 1].shade) {
-      return sortedPoints[sortedPoints.length - 1].lightness;
-    }
-    
-    // Linear interpolation with curve adjustment
-    const t = (shade - leftPoint.shade) / (rightPoint.shade - leftPoint.shade);
-    
-    // Apply curve intensity (0 = linear, positive = ease-in-out curve)
-    let adjustedT = t;
-    if (curveIntensity !== 0) {
-      const intensity = curveIntensity / 100;
-      if (intensity > 0) {
-        // Ease-in-out curve
-        adjustedT = t < 0.5 
-          ? 2 * Math.pow(t, 1 + intensity) 
-          : 1 - 2 * Math.pow(1 - t, 1 + intensity);
-      } else {
-        // Inverse curve (more linear in middle)
-        adjustedT = 0.5 + Math.sin((t - 0.5) * Math.PI) * (0.5 + Math.abs(intensity));
-      }
-    }
-    
-    return leftPoint.lightness + (rightPoint.lightness - leftPoint.lightness) * adjustedT;
+
+    // Get 4 points for Catmull-Rom (handle edge cases)
+    const p0 = sortedPoints[Math.max(0, leftIdx - 1)];
+    const p1 = sortedPoints[leftIdx];
+    const p2 = sortedPoints[Math.min(sortedPoints.length - 1, leftIdx + 1)];
+    const p3 = sortedPoints[Math.min(sortedPoints.length - 1, leftIdx + 2)];
+
+    // Calculate t (0 to 1 between p1 and p2)
+    const t = (shade - p1.shade) / (p2.shade - p1.shade);
+
+    // Use spline interpolation
+    const points = [
+      { x: p0.shade, y: p0.lightness },
+      { x: p1.shade, y: p1.lightness },
+      { x: p2.shade, y: p2.lightness },
+      { x: p3.shade, y: p3.lightness }
+    ];
+
+    const result = catmullRomSpline(points, t);
+    return Math.max(0, Math.min(100, result.y));
   };
 
-  // Generate color palette based on settings
+  // Initialize palette with lightness values based on preset curve
+  const [palettePoints, setPalettePoints] = useState(() => {
+    const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+    return shades.map((shade, idx) => ({
+      shade,
+      lightness: 95 - (idx / (shades.length - 1)) * 90 // Linear distribution 95 to 5
+    }));
+  });
+
+  // Generate color palette based on palette points
   const generatePalette = () => {
-    let shades;
-
-    if (useCustomRanges && customRanges.trim()) {
-      // Parse custom ranges from comma-separated string
-      shades = customRanges
-        .split(',')
-        .map(s => parseInt(s.trim()))
-        .filter(n => !isNaN(n) && n >= 0 && n <= 2100)
-        .sort((a, b) => a - b);
-    } else {
-      // Generate automatic ranges
-      shades = [];
-      const step = 50; // Always use 50-step increments
-
-      for (let i = minRange; i <= maxRange; i += step) {
-        shades.push(i);
-      }
-
-      // Ensure we always include the max range
-      if (shades[shades.length - 1] !== maxRange) {
-        shades.push(maxRange);
-      }
-    }
-
-    // Remove duplicates and sort
-    shades = [...new Set(shades)].sort((a, b) => a - b);
-
-    if (shades.length === 0) {
-      shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
-    }
-
     // Get base HSL from hex
     const [baseH, baseS, baseL] = hexToHsl(baseColor);
 
-    // Smart base color positioning based on lightness
-    // Find the shade value that corresponds to the base color's lightness
-    const baseColorShade = Math.round((100 - baseL) * 21); // Map 0-100 lightness to 2100-0 shade
-
-    return shades.map(shade => {
-      // Use graph-based lightness calculation
-      const lightness = generateLightnessCurve(shade);
-
-      let color;
-
-      // Use base color when shade matches its lightness position
-      if (Math.abs(shade - baseColorShade) < 50 && shades.includes(baseColorShade)) {
-        color = baseColor;
-      } else {
-        // Apply adjustments for all other shades
-        const adjustedHue = (baseH + hue + 360) % 360;
-        const adjustedSaturation = Math.max(0, Math.min(100, baseS + saturation));
-        const finalLightness = Math.max(lightnessMin, Math.min(lightnessMax, lightness));
-        color = hslToHex(adjustedHue, adjustedSaturation, finalLightness);
-      }
+    return palettePoints.map(point => {
+      // Apply adjustments
+      const adjustedHue = (baseH + hue + 360) % 360;
+      const adjustedSaturation = Math.max(0, Math.min(100, baseS + saturation));
+      const finalLightness = Math.max(lightnessMin, Math.min(lightnessMax, point.lightness));
+      const color = hslToHex(adjustedHue, adjustedSaturation, finalLightness);
 
       return {
-        shade,
+        shade: point.shade,
         color,
-        lightness: Math.max(lightnessMin, Math.min(lightnessMax, lightness)),
-        isBaseColor: Math.abs(shade - baseColorShade) < 50
+        lightness: finalLightness
       };
     });
   };
@@ -219,7 +193,7 @@ const ColorPalette = () => {
         }
       }),
       ...(includeConfig && {
-        graphPoints,
+        palettePoints,
         curveIntensity,
         connectionStrength
       })
@@ -232,138 +206,117 @@ const ColorPalette = () => {
     return JSON.stringify(paletteObject, null, 2);
   };
 
-  // Graph interaction handlers
-  const handleGraphPointDrag = (index, newShade, newLightness) => {
-    const newPoints = [...graphPoints];
-    const oldPoint = newPoints[index];
+  // Palette point interaction handlers
+  const handlePointDrag = (index, newShade, newLightness) => {
+    const newPoints = [...palettePoints];
 
-    // Update the dragged point
+    // Update only the lightness of the dragged point
     newPoints[index] = {
-      shade: Math.max(0, Math.min(2100, newShade)),
+      ...newPoints[index],
       lightness: Math.max(0, Math.min(100, newLightness))
     };
 
-    // Apply connection strength to neighboring points
-    if (connectionStrength > 0) {
-      const strengthFactor = connectionStrength / 100;
-      const shadeChange = newPoints[index].shade - oldPoint.shade;
-      const lightnessChange = newPoints[index].lightness - oldPoint.lightness;
-
-      // Affect neighboring points
-      for (let i = 0; i < newPoints.length; i++) {
-        if (i !== index) {
-          const distance = Math.abs(newPoints[i].shade - oldPoint.shade);
-          const maxDistance = 1000; // Maximum distance for influence
-          const influence = Math.max(0, 1 - distance / maxDistance) * strengthFactor;
-
-          if (influence > 0) {
-            newPoints[i] = {
-              shade: Math.max(0, Math.min(2100, newPoints[i].shade + shadeChange * influence * 0.3)),
-              lightness: Math.max(0, Math.min(100, newPoints[i].lightness + lightnessChange * influence * 0.5))
-            };
-          }
-        }
-      }
-    }
-
-    setGraphPoints(newPoints);
-    setSelectedPreset('custom'); // Mark as custom when manually adjusted
-  };
-
-  const addGraphPoint = () => {
-    const newShade = 300 + Math.random() * 400; // Random shade between 300-700
-    const newLightness = generateLightnessCurve(newShade);
-
-    setGraphPoints([...graphPoints, { shade: newShade, lightness: newLightness }]);
+    setPalettePoints(newPoints);
     setSelectedPreset('custom');
   };
 
-  const removeGraphPoint = (index) => {
-    if (graphPoints.length > 2) { // Keep at least 2 points
-      const newPoints = graphPoints.filter((_, i) => i !== index);
-      setGraphPoints(newPoints);
+  const addPalettePoint = () => {
+    // Find a gap in the existing shades to insert new point
+    const sortedPoints = [...palettePoints].sort((a, b) => a.shade - b.shade);
+
+    // Find the largest gap
+    let maxGap = 0;
+    let insertShade = 500;
+    for (let i = 0; i < sortedPoints.length - 1; i++) {
+      const gap = sortedPoints[i + 1].shade - sortedPoints[i].shade;
+      if (gap > maxGap) {
+        maxGap = gap;
+        insertShade = Math.round((sortedPoints[i].shade + sortedPoints[i + 1].shade) / 2);
+      }
+    }
+
+    // Calculate lightness using spline interpolation
+    const newLightness = generateLightnessCurve(insertShade, palettePoints);
+
+    setPalettePoints([...palettePoints, { shade: insertShade, lightness: newLightness }]);
+    setSelectedPreset('custom');
+    message.success(`Added point at shade ${insertShade}`);
+  };
+
+  const removePalettePoint = (index) => {
+    if (palettePoints.length > 2) {
+      const newPoints = palettePoints.filter((_, i) => i !== index);
+      setPalettePoints(newPoints);
+      setSelectedPreset('custom');
+    } else {
+      message.warning('Minimum 2 points required');
     }
   };
 
-  // Preset curve configurations
+  // Preset curve configurations - generate lightness distributions
   const curvePresets = {
     linear: {
       name: 'Linear',
-      points: [
-        { shade: 50, lightness: 95 },
-        { shade: 950, lightness: 5 }
-      ],
-      curveIntensity: 0
+      generate: (points) => points.map((p, i, arr) => ({
+        ...p,
+        lightness: 95 - (i / (arr.length - 1)) * 90
+      }))
     },
     easeIn: {
       name: 'Ease In',
-      points: [
-        { shade: 50, lightness: 95 },
-        { shade: 300, lightness: 70 },
-        { shade: 600, lightness: 30 },
-        { shade: 950, lightness: 5 }
-      ],
-      curveIntensity: 30
+      generate: (points) => points.map((p, i, arr) => {
+        const t = i / (arr.length - 1);
+        const easedT = Math.pow(t, 2);
+        return { ...p, lightness: 95 - easedT * 90 };
+      })
     },
     easeOut: {
       name: 'Ease Out',
-      points: [
-        { shade: 50, lightness: 95 },
-        { shade: 400, lightness: 65 },
-        { shade: 700, lightness: 25 },
-        { shade: 950, lightness: 5 }
-      ],
-      curveIntensity: -20
+      generate: (points) => points.map((p, i, arr) => {
+        const t = i / (arr.length - 1);
+        const easedT = 1 - Math.pow(1 - t, 2);
+        return { ...p, lightness: 95 - easedT * 90 };
+      })
     },
     sCurve: {
       name: 'S-Curve',
-      points: [
-        { shade: 50, lightness: 95 },
-        { shade: 250, lightness: 80 },
-        { shade: 500, lightness: 50 },
-        { shade: 750, lightness: 20 },
-        { shade: 950, lightness: 5 }
-      ],
-      curveIntensity: 25
+      generate: (points) => points.map((p, i, arr) => {
+        const t = i / (arr.length - 1);
+        const easedT = t < 0.5
+          ? 2 * t * t
+          : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        return { ...p, lightness: 95 - easedT * 90 };
+      })
     },
     balanced: {
       name: 'Balanced',
-      points: [
-        { shade: 50, lightness: 95 },
-        { shade: 200, lightness: 80 },
-        { shade: 400, lightness: 60 },
-        { shade: 600, lightness: 40 },
-        { shade: 800, lightness: 20 },
-        { shade: 950, lightness: 5 }
-      ],
-      curveIntensity: 0
+      generate: (points) => points.map((p, i, arr) => ({
+        ...p,
+        lightness: 95 - (i / (arr.length - 1)) * 90
+      }))
     },
     dramatic: {
       name: 'Dramatic',
-      points: [
-        { shade: 50, lightness: 98 },
-        { shade: 400, lightness: 85 },
-        { shade: 700, lightness: 15 },
-        { shade: 950, lightness: 3 }
-      ],
-      curveIntensity: 40
+      generate: (points) => points.map((p, i, arr) => {
+        const t = i / (arr.length - 1);
+        const easedT = Math.pow(t, 3);
+        return { ...p, lightness: 98 - easedT * 95 };
+      })
     },
     subtle: {
       name: 'Subtle',
-      points: [
-        { shade: 50, lightness: 90 },
-        { shade: 500, lightness: 50 },
-        { shade: 950, lightness: 15 }
-      ],
-      curveIntensity: -10
+      generate: (points) => points.map((p, i, arr) => {
+        const t = i / (arr.length - 1);
+        return { ...p, lightness: 90 - t * 75 };
+      })
     }
   };
 
   const applyPreset = (presetKey) => {
     const preset = curvePresets[presetKey];
     if (preset) {
-      setGraphPoints(preset.points);
-      setCurveIntensity(preset.curveIntensity);
+      const newPoints = preset.generate(palettePoints);
+      setPalettePoints(newPoints);
       setSelectedPreset(presetKey);
       message.success(`Applied ${preset.name} preset`);
     }
@@ -392,8 +345,11 @@ const ColorPalette = () => {
         setLightnessMin(config.lightnessMin || 5);
         setIsPerceived(config.isPerceived !== undefined ? config.isPerceived : true);
         
-        if (data.graphPoints) {
-          setGraphPoints(data.graphPoints);
+        if (data.palettePoints) {
+          setPalettePoints(data.palettePoints);
+        } else if (data.graphPoints) {
+          // Backward compatibility
+          setPalettePoints(data.graphPoints);
         }
         if (data.curveIntensity !== undefined) {
           setCurveIntensity(data.curveIntensity);
@@ -504,54 +460,10 @@ const ColorPalette = () => {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text strong>Range Configuration</Text>
-                <Switch 
-                  checked={useCustomRanges}
-                  onChange={setUseCustomRanges}
-                  size="small"
-                />
-              </div>
-              
-              {useCustomRanges ? (
-                <div>
-                  <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginBottom: 4 }}>
-                    Enter comma-separated values (e.g., 50,100,200,300,400,500,600,700,800,900,950)
-                  </Text>
-                  <TextArea
-                    value={customRanges}
-                    onChange={(e) => setCustomRanges(e.target.value)}
-                    placeholder="50,100,200,300,400,500,600,700,800,900,950"
-                    rows={2}
-                    style={{ fontSize: '12px' }}
-                  />
-                </div>
-              ) : (
-                <Row gutter={8}>
-                  <Col span={12}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Min Range</Text>
-                    <Input
-                      type="number"
-                      value={minRange}
-                      onChange={(e) => setMinRange(Math.max(0, parseInt(e.target.value) || 0))}
-                      min={0}
-                      max={2100}
-                      style={{ marginTop: 4 }}
-                    />
-                  </Col>
-                  <Col span={12}>
-                    <Text type="secondary" style={{ fontSize: '12px' }}>Max Range</Text>
-                    <Input
-                      type="number"
-                      value={maxRange}
-                      onChange={(e) => setMaxRange(Math.min(2100, Math.max(minRange + 1, parseInt(e.target.value) || 2100)))}
-                      min={minRange + 1}
-                      max={2100}
-                      style={{ marginTop: 4 }}
-                    />
-                  </Col>
-                </Row>
-              )}
+              <Text strong>Palette: {palettePoints.length} colors</Text>
+              <Text type="secondary" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>
+                Use Add/Remove buttons in graph section to manage colors
+              </Text>
             </div>
 
             <Row gutter={16}>
@@ -690,13 +602,13 @@ const ColorPalette = () => {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <Text strong>Graph Points ({graphPoints.length})</Text>
+                    <Text strong>Palette Points ({palettePoints.length})</Text>
                     <Space>
                       <Button
                         size="small"
                         icon={<PlusOutlined />}
-                        onClick={addGraphPoint}
-                        disabled={graphPoints.length >= 10}
+                        onClick={addPalettePoint}
+                        disabled={palettePoints.length >= 20}
                       >
                         Add Point
                       </Button>
@@ -887,25 +799,45 @@ const ColorPalette = () => {
                   </g>
                 ))}
                 
-                {/* Curve line - now white for visibility on colored background */}
+                {/* Smooth curve through all palette points using spline interpolation */}
                 <path
                   d={(() => {
-                    const points = [];
-                    for (let shade = 0; shade <= 2100; shade += 50) {
-                      const lightness = generateLightnessCurve(shade);
-                      const x = 50 + (shade / 2100) * 700;
-                      const y = 250 - (lightness / 100) * 200;
-                      points.push(`${shade === 0 ? 'M' : 'L'} ${x} ${y}`);
+                    const sorted = [...palettePoints].sort((a, b) => a.shade - b.shade);
+                    const pathPoints = [];
+
+                    // Generate smooth curve through all points
+                    for (let i = 0; i < sorted.length - 1; i++) {
+                      const p0 = sorted[Math.max(0, i - 1)];
+                      const p1 = sorted[i];
+                      const p2 = sorted[i + 1];
+                      const p3 = sorted[Math.min(sorted.length - 1, i + 2)];
+
+                      // Generate curve segment between p1 and p2
+                      const steps = 20;
+                      for (let step = 0; step <= steps; step++) {
+                        const t = step / steps;
+                        const splinePoints = [
+                          { x: p0.shade, y: p0.lightness },
+                          { x: p1.shade, y: p1.lightness },
+                          { x: p2.shade, y: p2.lightness },
+                          { x: p3.shade, y: p3.lightness }
+                        ];
+                        const result = catmullRomSpline(splinePoints, t);
+                        const x = 50 + (result.x / 2100) * 700;
+                        const y = 250 - (result.y / 100) * 200;
+                        pathPoints.push(`${pathPoints.length === 0 ? 'M' : 'L'} ${x} ${y}`);
+                      }
                     }
-                    return points.join(' ');
+
+                    return pathPoints.join(' ');
                   })()}
                   fill="none"
                   stroke="white"
                   strokeWidth="4"
-                  opacity="0.8"
+                  opacity="0.9"
                 />
 
-                {/* Palette color preview dots along curve */}
+                {/* Palette color dots - show actual colors at their positions */}
                 {palette.map((item, idx) => {
                   const x = 50 + (item.shade / 2100) * 700;
                   const y = 250 - (item.lightness / 100) * 200;
@@ -914,17 +846,17 @@ const ColorPalette = () => {
                       key={`palette-${idx}`}
                       cx={x}
                       cy={y}
-                      r="4"
+                      r="5"
                       fill={item.color}
                       stroke="white"
-                      strokeWidth="2"
+                      strokeWidth="2.5"
                       opacity="1"
                     />
                   );
                 })}
                 
-                {/* Interactive control points - larger and more visible */}
-                {graphPoints.map((point, index) => {
+                {/* Interactive control points - each represents a palette color */}
+                {palettePoints.map((point, index) => {
                   const x = 50 + (point.shade / 2100) * 700;
                   const y = 250 - (point.lightness / 100) * 200;
 
@@ -959,7 +891,7 @@ const ColorPalette = () => {
                             const newShade = Math.max(0, Math.min(2100, ((newX - 50) / 700) * 2100));
                             const newLightness = Math.max(0, Math.min(100, ((250 - newY) / 200) * 100));
                             
-                            handleGraphPointDrag(index, newShade, newLightness);
+                            handlePointDrag(index, newShade, newLightness);
                           };
                           
                           const handleMouseUp = () => {
@@ -992,7 +924,7 @@ const ColorPalette = () => {
                       >
                         {Math.round(point.shade)}, {Math.round(point.lightness)}%
                       </text>
-                      {graphPoints.length > 2 && (
+                      {palettePoints.length > 2 && (
                         <>
                           <circle
                             cx={x + 16}
@@ -1002,7 +934,7 @@ const ColorPalette = () => {
                             stroke="white"
                             strokeWidth="2"
                             style={{ cursor: 'pointer' }}
-                            onClick={() => removeGraphPoint(index)}
+                            onClick={() => removePalettePoint(index)}
                           />
                           <text
                             x={x + 16}
@@ -1033,39 +965,18 @@ const ColorPalette = () => {
                   display: 'flex',
                   alignItems: 'center'
                 }}>
-                  {/* Show base color position if applicable */}
-                  {palette.find(item => item.isBaseColor) && (
-                    <div style={{
-                      position: 'absolute',
-                      left: `${(palette.findIndex(item => item.isBaseColor) / (palette.length - 1)) * 100}%`,
-                      transform: 'translateX(-50%)',
-                      bottom: '-24px'
-                    }}>
-                      <div style={{
-                        width: 0,
-                        height: 0,
-                        borderLeft: '6px solid transparent',
-                        borderRight: '6px solid transparent',
-                        borderBottom: '8px solid #1890ff',
-                        margin: '0 auto'
-                      }} />
-                      <Text style={{ fontSize: '10px', color: '#1890ff', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        Base
-                      </Text>
-                    </div>
-                  )}
                 </div>
               </div>
 
               <div style={{ marginTop: 32, fontSize: '12px', color: '#666' }}>
                 <Text strong>Instructions:</Text>
                 <ul style={{ margin: '8px 0', paddingLeft: 16 }}>
-                  <li>The colored gradient shows your actual palette colors</li>
-                  <li>White dots show where each shade falls on the curve</li>
-                  <li>Drag red control points to adjust the lightness distribution</li>
-                  <li>Click × to remove control points (minimum 2 required)</li>
-                  <li>Use preset curves for common patterns, or customize your own</li>
-                  <li>Base color automatically positions based on its lightness value</li>
+                  <li>The colored gradient background shows your actual palette</li>
+                  <li>Each colored dot represents a palette color - drag up/down to adjust lightness</li>
+                  <li>Red control points (same as colored dots) can be moved vertically to change that color</li>
+                  <li>The white curve shows the smooth interpolation through all points</li>
+                  <li>Use preset curves to redistribute all colors along different patterns</li>
+                  <li>Add/remove points to create more or fewer colors in your palette</li>
                 </ul>
               </div>
             </div>
