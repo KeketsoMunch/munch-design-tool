@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, Typography, Input, Row, Col, Space, Divider, Alert, Slider, Switch } from 'antd';
 import { EyeOutlined, InfoCircleOutlined } from '@ant-design/icons';
 
@@ -57,7 +57,7 @@ const APCAContrast = () => {
   const apcaScore = calculateAPCA(foregroundColor, backgroundColor);
 
   // APCA guidelines for different use cases
-  const getAPCAGuideline = (score, fontSize, fontWeight) => {
+  const getAPCAGuideline = (score) => {
     const absScore = Math.abs(score);
     
     if (absScore >= 90) return { level: 'AAA', description: 'Excellent for all text sizes', color: '#52c41a' };
@@ -67,7 +67,7 @@ const APCAContrast = () => {
     return { level: 'Fail', description: 'Insufficient contrast', color: '#ff4d4f' };
   };
 
-  const guideline = getAPCAGuideline(apcaScore, fontSize, fontWeight);
+  const guideline = getAPCAGuideline(apcaScore);
 
   // Sample text scenarios
   const textScenarios = [
@@ -226,7 +226,7 @@ const APCAContrast = () => {
         }}>
           {textScenarios.map((scenario, index) => {
             const scenarioScore = calculateAPCA(foregroundColor, backgroundColor);
-            const scenarioGuideline = getAPCAGuideline(scenarioScore, scenario.size, scenario.weight);
+            const scenarioGuideline = getAPCAGuideline(scenarioScore);
             
             return (
               <Card
