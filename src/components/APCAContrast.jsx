@@ -237,7 +237,7 @@ const APCAContrast = () => {
                   border: `2px solid ${scenarioGuideline.color}`,
                   minHeight: 120
                 }}
-                bodyStyle={{ padding: '16px' }}
+                styles={{ body: { padding: '16px' } }}
               >
                 <div style={{ marginBottom: 8 }}>
                   <Text 
