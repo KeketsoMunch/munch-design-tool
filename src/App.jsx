@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import './App.css';
 import { Layout } from 'antd';
 import RadiusVisualizer from './components/RadiusVisualizer';
 import ColorPalette from './components/ColorPalette';

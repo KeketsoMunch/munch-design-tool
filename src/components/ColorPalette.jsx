@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, Input, Slider, Row, Col, Typography, Button, Space, Switch, message, Upload, Divider } from 'antd';
 import { CopyOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined, PlusOutlined, MinusOutlined } from '@ant-design/icons';
 
@@ -155,7 +155,7 @@ const ColorPalette = () => {
   // Generate color palette based on palette points
   const generatePalette = () => {
     // Get base HSL from hex
-    const [baseH, baseS, baseL] = hexToHsl(baseColor);
+    const [baseH, baseS] = hexToHsl(baseColor);
 
     return palettePoints.map(point => {
       // Apply adjustments
@@ -363,7 +363,7 @@ const ColorPalette = () => {
         message.warning('No configuration found in JSON. Only loading name and colors.');
         if (data.name) setColorName(data.name);
       }
-    } catch (error) {
+    } catch {
       message.error('Invalid JSON format');
     }
   };
@@ -1089,7 +1089,7 @@ const ColorPalette = () => {
               borderRadius: 4,
               position: 'relative'
             }}>
-              {palette.map(({ shade, lightness }, index) => (
+              {palette.map(({ shade, lightness }) => (
                 <div
                   key={shade}
                   style={{
